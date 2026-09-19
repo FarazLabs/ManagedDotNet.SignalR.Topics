@@ -23,11 +23,11 @@ ManagedDotNet.SignalR.Topics extends SignalR with one primary communication meth
 
 **`Handle(string topic, string payload)`** — used by clients to send structured messages to the server (implemented by the library on `TopicHub`).
 
-![Client → server](https://raw.githubusercontent.com/farazzbhn/SignalR.Topics/master/handleOnServer.svg)
+![Client → server](https://raw.githubusercontent.com/FarazLabs/ManagedDotNet.SignalR.Topics/main/handleOnServer.svg)
 
 **`Handle(string topic, string payload)`** — used by the server to deliver structured messages back to clients. Clients listen for this method on the connection.
 
-![Server → client](https://raw.githubusercontent.com/farazzbhn/SignalR.Topics/master/handleOnClient.svg)
+![Server → client](https://raw.githubusercontent.com/FarazLabs/ManagedDotNet.SignalR.Topics/main/handleOnClient.svg)
 
 The core concept behind both is **topics**. Every message is tied to a topic, which defines its intent and determines how it should be deserialized, routed, and handled. By enforcing this topic-oriented model, ManagedDotNet.SignalR.Topics gives you a predictable, type-bound pipeline for both directions of communication.
 
@@ -317,6 +317,6 @@ This blog post is associated with the ManagedDotNet.SignalR.Topics NuGet package
 https://www.nuget.org/packages/ManagedDotNet.SignalR.Topics  
 
 and the GitHub repository:  
-https://github.com/farazzbhn/SignalR.Topics  
+https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics  
 
 For more details, examples, and to ask questions, check out the repository — everything you need to get started is there (including a full OrderBook server + C# client demo). Happy building!

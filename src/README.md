@@ -14,9 +14,9 @@ Two directions, two configs:
 
 
 - `**Handle(topic, payload)**` — client → server (library hub method)
-![Client-To-Server Flow](https://raw.githubusercontent.com/farazzbhn/SignalR.Topics/master/handleOnServer.svg)
+![Client-To-Server Flow](https://raw.githubusercontent.com/FarazLabs/ManagedDotNet.SignalR.Topics/main/handleOnServer.svg)
 - `**Handle(topic, payload)**` — server → client (listen on the client)
-![Server-to-Client Flow](https://raw.githubusercontent.com/farazzbhn/SignalR.Topics/master/handleOnClient.svg)
+![Server-to-Client Flow](https://raw.githubusercontent.com/FarazLabs/ManagedDotNet.SignalR.Topics/main/handleOnClient.svg)
 
 ---
 

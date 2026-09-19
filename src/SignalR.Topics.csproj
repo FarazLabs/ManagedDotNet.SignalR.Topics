@@ -19,8 +19,8 @@
       </Description>
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
       <PackageReadmeFile>README.md</PackageReadmeFile>
-      <RepositoryUrl>https://github.com/farazzbhn/SignalR.Topics</RepositoryUrl>
-      <PackageProjectUrl>https://github.com/farazzbhn/SignalR.Topics</PackageProjectUrl>
+      <RepositoryUrl>https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics</RepositoryUrl>
+      <PackageProjectUrl>https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics</PackageProjectUrl>
       <RepositoryType>git</RepositoryType>
       <PackageTags>
           SignalR,TopicHub,TopicRouting,CommandHandler,HubContext,TypeSafeMessaging,
