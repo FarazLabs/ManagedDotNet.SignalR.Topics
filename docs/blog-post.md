@@ -1,64 +1,73 @@
-# Topic-based SignalR hubs for ASP.NET Core — introducing ManagedDotNet.SignalR.Topics
+# Introducing ManagedDotNet.SignalR.Topics — topic-based SignalR hubs that stay clean as you grow
 
-This post introduces **ManagedDotNet.SignalR.Topics** (successor to [ManagedSignalR](https://www.nuget.org/packages/ManagedSignalR)): topic-routed SignalR hubs with typed message bindings, per-message (de)serialization, and DI command handlers.
+This post introduces a library I developed — **ManagedDotNet.SignalR.Topics** — providing topic-based SignalR hubs with typed message bindings, custom serialization, and DI-based mediator-style handlers.
 
 ---
 
-SignalR is excellent for real-time communication — but once an application grows beyond a handful of message types, hubs often get messy.
+SignalR is fantastic for real-time communication — but once your application grows beyond a handful of message types, things can get complicated.
 
 ## Issues & motivation
 
-- **No built-in message routing** — You either cram everything into one method with a giant `switch`, or scatter logic across dozens of hub methods. Neither scales cleanly in a modular codebase.
-- **One-size-fits-all serialization** — SignalR’s global serializer makes it awkward when some topics want plain text, others JSON, others a custom wire format.
-- **Business logic in the hub** — Handlers mixed into hub methods hurt testing and layering (application vs infrastructure).
-- **Method-name sprawl** — Every new operation tends to mean another public hub method (and matching client invoke name) to keep in sync across services and clients.
+- **No built-in message routing** — You either cram everything into a single receive method with a giant switch/if block, or scatter your logic across dozens of hub methods. Neither approach scales well.
+- **One-size-fits-all serialization** — SignalR uses a single global serializer by default, making it hard to fine-tune formats or honor different data contracts for different message types.
+- **Poor separation of concerns** — Business logic often ends up living inside the hub, which makes testing, maintenance, and scaling far more painful than it needs to be.
+- **Tight coupling between server & client method names** — Clients and servers are bound to matching method names, so even a small rename can break communication.
 
-I wanted a single, predictable wire shape, centralized topic bindings, and handlers that live outside the hub — without giving up normal SignalR groups, auth, and hosting.
+I set out to fix that — with typed messages, centralized topic routing, and clean, testable handlers.
 
-## The idea
+The result? SignalR hubs that are simpler, cleaner, **and a joy to maintain!**
 
-**ManagedDotNet.SignalR.Topics** keeps SignalR underneath and adds a **topic envelope**:
+## ManagedDotNet.SignalR.Topics to the rescue!
 
-| Direction | Call | Registration |
-| --- | --- | --- |
-| Client → server | `Handle(topic, payload)` | `HandleOnServer` — topic → deserializer → `IHubCommandHandler<T>` |
-| Server → client | `Handle(topic, payload)` | `HandleOnClient` — message type → topic → serializer |
+ManagedDotNet.SignalR.Topics extends SignalR with one primary communication method in both directions:
 
-Both directions use the same method name on the wire: **`Handle`**. The **topic** decides intent; the library maps that to types, (de)serializers, and DI handlers.
+**`Handle(string topic, string payload)`** — used by clients to send structured messages to the server (implemented by the library on `TopicHub`).
 
 ![Client → server](https://raw.githubusercontent.com/farazzbhn/SignalR.Topics/master/handleOnServer.svg)
 
+**`Handle(string topic, string payload)`** — used by the server to deliver structured messages back to clients. Clients listen for this method on the connection.
+
 ![Server → client](https://raw.githubusercontent.com/farazzbhn/SignalR.Topics/master/handleOnClient.svg)
 
-What you get:
+The core concept behind both is **topics**. Every message is tied to a topic, which defines its intent and determines how it should be deserialized, routed, and handled. By enforcing this topic-oriented model, ManagedDotNet.SignalR.Topics gives you a predictable, type-bound pipeline for both directions of communication.
 
-- **Topic → type bindings** for inbound and outbound messages
-- **MediatR-style** `IHubCommandHandler<T>` (auto-registered via `.WithHandler<T>()`)
-- **Per-message (de)serializers**, or default `System.Text.Json` with `JsonSerializerDefaults.Web` (camelCase, case-insensitive)
-- **Modular registration** — each feature module calls `AddTopicHub`; the host calls `MapTopicHubs()` once (validates bindings, maps hubs, applies conventions)
-- **MapHub parity** — `RequireAuthorization` / `AllowAnonymous`, CORS, `ConfigureHttpConnection`, metadata/host/display name, plus an escape hatch
-- **Topic auth** — `[Authorize]` / `[AllowAnonymous]` on handlers (checked before deserialize)
+Under the hood you also get:
 
-> **Honest framing:** this is not Microsoft “strongly typed hubs” (`Hub<TClient>` with named client methods). Clients still listen/invoke `Handle(string topic, string payload)`. The “typed” part is the **server-side binding** from topics and CLR types to handlers and serializers.
+- MediatR-style `IHubCommandHandler<T>` handlers (registered automatically via `.WithHandler<T>()`)
+- Per-message (de)serializers — or default `System.Text.Json` with `JsonSerializerDefaults.Web` (camelCase, case-insensitive)
+- Modular setup — `AddTopicHub` per feature module, one `MapTopicHubs()` on the host
+- MapHub-style auth, CORS, connection options, and endpoint conventions
+- Topic-level `[Authorize]` / `[AllowAnonymous]` on handlers
 
 ## Getting started
 
-### 1. Install
+### 1. Install ManagedDotNet.SignalR.Topics
+
+Add the NuGet package to your project:
 
 ```bash
 dotnet add package ManagedDotNet.SignalR.Topics
 ```
 
-Namespaces live under `ManagedDotNet.SignalR.Topics.*`. Current line is **0.1.0** (early but intentional).
+Namespaces live under `ManagedDotNet.SignalR.Topics.*`.
 
-### 2. Register hubs (often per module)
+### 2. Configure incoming / outgoing topic bindings
 
-Example: an order-book hub — clients `subscribe` / `unsubscribe` with a symbol string, `terminate` with JSON (Administrators only); server pushes `update` JSON and a plain-text `alert` on connect:
+In your module (or `Program.cs`), define the topic bindings that map message types to topics and handlers. This tells the server how to route incoming messages from clients — and how to send messages back:
 
 ```csharp
 services.AddTopicHub<OrderBookHub>("/orderBook")
-    .RequireAuthorization()
+    .RequireAuthorization()                                    // default policy
+    // .RequireAuthorization("TradingPolicy")                  // named policy
+    // .RequireAuthorization(b => b.RequireRole("User"))       // ...
+    // .AllowAnonymous()
+    // .RequireCors("SignalRPolicy")                           // ... CORS, connection options, metadata, etc.
 
+    // --- CLIENT → SERVER ---
+    // Clients send "subscribe" with a plain symbol string (e.g. "btc/usdt").
+    // 1. Bind the topic
+    // 2. Deserialize into your command type
+    // 3. Assign the handler (also registers it in DI)
     .HandleOnServer<SubscribeToSymbolCommand>(cfg =>
         cfg.WithTopic("subscribe")
             .WithDeserializer(str => new SubscribeToSymbolCommand
@@ -79,24 +88,28 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
         cfg.WithTopic("terminate")
             .WithHandler<TerminateHubCommandHandler>())
 
+    // --- SERVER → CLIENT ---
+    // Plain-text welcome alert on connect
     .HandleOnClient<ConnectionAlert>(cfg =>
         cfg.WithTopic("alert")
             .WithSerializer(alert => alert!.Message))
 
+    // JSON order-book updates (default Web JSON if you omit WithSerializer)
     .HandleOnClient<OrderBookUpdate>(cfg =>
-        cfg.WithTopic("update")); // default Web JSON
+        cfg.WithTopic("update"));
 
-// other modules:
+// and within other modules
 // services.AddTopicHub<ChatHub>("/chat")...
 ```
 
-Still register SignalR as usual:
+Not to forget the default SignalR registration:
 
 ```csharp
 builder.Services.AddSignalR();
+// add Redis backplane for distributed SignalR ...
 ```
 
-Map everything in one place on the host (replaces scattered `MapHub<T>` calls for topic hubs):
+And of course — map all topic hubs in one shot on the host:
 
 ```csharp
 app.UseEndpoints(endpoints =>
@@ -105,11 +118,11 @@ app.UseEndpoints(endpoints =>
 });
 ```
 
-`MapTopicHubs` validates incomplete bindings, maps each registered hub, applies auth/CORS/connection conventions from `AddTopicHub`, then seals configuration.
+`MapTopicHubs()` validates your bindings, maps every hub registered with `AddTopicHub`, and applies the fluent conventions you configured (auth, CORS, connection options, and more).
 
-### 3. Create the hub
+### 3. Create the TopicHub
 
-Inherit `TopicHub`. Use normal SignalR lifecycle overrides. Inside the hub, send typed outbound messages with `Clients.*.Handle(...)` — do **not** inject `ITopicHubContext` into the hub for that.
+Implement your hub by inheriting from `TopicHub`. Override the usual SignalR lifecycle methods when you need connect/disconnect logic:
 
 ```csharp
 public class OrderBookHub : TopicHub
@@ -123,17 +136,22 @@ public class OrderBookHub : TopicHub
             Message = "Welcome! You are connected to the order book hub."
         };
 
+        // Inside the hub: use Clients (no ITopicHubContext inject)
         await Clients.Caller.Handle(alert);
     }
 }
 ```
 
-### 4. Implement handlers
+### 4. Implement the topic command handlers
 
-Handlers are registered by `.WithHandler<T>()`. Inject `ITopicHubContext<THub>` to reach groups or reply from application code:
+`IHubCommandHandler<T>` handlers process incoming commands once they have been deserialized. They are registered with DI via `.WithHandler<T>()` and can take constructor dependencies:
+
+There is no fluent `RequireAuthorization` on `HandleOnServer` — put attributes on the handler instead:
 
 ```csharp
 [Authorize(Roles = "User,Administrator")]
+// [Authorize(Policy = "TradingPolicy")]
+// ...
 public class SubscribeToSymbolHubCommandHandler : IHubCommandHandler<SubscribeToSymbolCommand>
 {
     private readonly ITopicHubContext<OrderBookHub> _hubContext;
@@ -151,27 +169,35 @@ public class SubscribeToSymbolHubCommandHandler : IHubCommandHandler<SubscribeTo
         HubCallerContext context,
         CancellationToken cancellationToken)
     {
-        // validate symbol, then:
+        // validate symbol, then join the SignalR group for that symbol
         await _hubContext.Groups.AddToGroupAsync(
             context.ConnectionId,
             request.Symbol,
             cancellationToken);
     }
 }
+
+// [AllowAnonymous]
+// public class SomePublicCommandHandler : IHubCommandHandler<SomePublicCommand> { ... }
 ```
 
-**Authorization reminder**
+Attributes are baked at `.WithHandler<T>()` registration time.
 
-| Layer | Configured how | Gates |
-| --- | --- | --- |
-| Hub | `.RequireAuthorization()` / `.AllowAnonymous()` on `AddTopicHub` | Connecting to the hub |
-| Topic | `[Authorize]` / `[AllowAnonymous]` on the **handler** | Invoking that topic |
+At this point, your server knows how to receive messages, handle serialization, and route each topic to the right handler.
 
-Hub auth does not replace per-topic roles. If a handler has no `[Authorize]`, any client allowed on the hub can call that topic.
+**Authorization tip:** hub-level `.RequireAuthorization()` gates *connecting*. Topic-level `[Authorize]` / `[AllowAnonymous]` on the handler gates *invoking that topic*. Both can apply — use handler attributes when different topics need different roles.
 
-### 5. Send from outside the hub
+### 5. Sending messages from outside the hub
 
-From a background job, controller, or service, inject `ITopicHubContext<THub>` (not raw `IHubContext<THub>` if you want topic routing):
+But what if you want to send messages from outside the hub — like from a controller or a background service? That’s where `ITopicHubContext<THub>` comes in. Just inject it, then call:
+
+```csharp
+await hubContext.Clients.All.Handle(configuredMessage);
+```
+
+**Important:** prefer `.Handle(message)` over calling `SendAsync("Handle", …)` yourself — doing so bypasses ManagedDotNet.SignalR.Topics routing and serialization.
+
+For example, from a job:
 
 ```csharp
 ITopicHubContext<OrderBookHub> hubContext =
@@ -186,16 +212,35 @@ OrderBookUpdate update = new OrderBookUpdate
 await hubContext.Clients.Group(update.Symbol).Handle(update, stoppingToken);
 ```
 
-Prefer `.Handle(message)` over inventing your own `SendAsync("Handle", ...)`. The library picks the topic and serializer from `HandleOnClient` registration.
+Or from an API controller:
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class NotificationController : ControllerBase
+{
+    private readonly ITopicHubContext<OrderBookHub> _hubContext;
+
+    public NotificationController
+    (
+        ITopicHubContext<OrderBookHub> hubContext
+    )
+    {
+        _hubContext = hubContext;
+    }
+
+    [HttpPost("broadcast")]
+    public async Task<IActionResult> BroadcastAlert([FromBody] ConnectionAlert alert)
+    {
+        await _hubContext.Clients.All.Handle(alert);
+        return Ok();
+    }
+}
+```
 
 ## Client code
 
-Clients always use the same wire contract:
-
-| Direction | Method | Signature |
-| --- | --- | --- |
-| Listen (server → client) | `"Handle"` | `On<string, string>("Handle", (topic, payload) => …)` |
-| Call (client → server) | `"Handle"` | `InvokeAsync("Handle", topic, message)` |
+SignalR requires that you implement the client-side listener as well. Use the snippets below to handle server-sent events.
 
 ### JavaScript / TypeScript
 
@@ -204,26 +249,29 @@ const connection = new signalR.HubConnectionBuilder()
     .withUrl("/orderBook", { accessTokenFactory: () => token })
     .build();
 
+// Listen for messages from server
 connection.on("Handle", (topic, payload) => {
     switch (topic) {
         case "alert":
-            // custom serializer may send plain text
-            console.log(`[alert] ${payload}`);
+            // WithSerializer may send plain text — not always JSON
+            console.log(`ALERT!!!\t${payload}`);
             break;
         case "update":
             const update = JSON.parse(payload);
-            console.log(`${update.symbol}: ${update.price}`);
+            console.log(`UPDATE*\t${update.symbol}: ${update.price}`);
             break;
         default:
-            console.log(`[unknown topic] ${topic} => ${payload}`);
+            console.log(`[unexpected topic]\t${topic} => ${payload}`);
+            break;
     }
 });
 
+// Send message to server
 await connection.start();
 await connection.invoke("Handle", "subscribe", "BTC/USDT");
 ```
 
-### C#
+### C# clients
 
 ```csharp
 HubConnection connection = new HubConnectionBuilder()
@@ -232,17 +280,29 @@ HubConnection connection = new HubConnectionBuilder()
     .WithAutomaticReconnect()
     .Build();
 
+// Handle server-initiated messages via Handle(topic, payload)
 connection.On<string, string>("Handle", (string topic, string payload) =>
 {
     switch (topic)
     {
         case "alert":
-            Console.WriteLine($"[alert] {payload}");
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"ALERT!!!\t{payload}");
+            Console.ResetColor();
             break;
+
         case "update":
             OrderBookUpdate? update =
-                JsonSerializer.Deserialize<OrderBookUpdate>(payload);
-            Console.WriteLine($"{update?.Symbol}: {update?.Price}");
+                System.Text.Json.JsonSerializer.Deserialize<OrderBookUpdate>(payload);
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"UPDATE*\t{update?.Symbol}: {update?.Price}");
+            Console.ResetColor();
+            break;
+
+        default:
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"[unexpected topic]\t{topic} => {payload}");
+            Console.ResetColor();
             break;
     }
 });
@@ -251,35 +311,12 @@ await connection.StartAsync();
 await connection.InvokeAsync("Handle", "subscribe", "BTC/USDT");
 ```
 
-## Coming from ManagedSignalR?
+## Wrap-up
 
-Rough rename map:
+This blog post is associated with the ManagedDotNet.SignalR.Topics NuGet package:  
+https://www.nuget.org/packages/ManagedDotNet.SignalR.Topics  
 
-| ManagedSignalR | ManagedDotNet.SignalR.Topics |
-| --- | --- |
-| `ManagedHub` | `TopicHub` |
-| `InvokeServer` / `InvokeClient` | `Handle` / `Handle` (both directions) |
-| `AddManagedSignalR` + `AddManagedHub` | `AddTopicHub` (+ `MapTopicHubs`) |
-| `ConfigureInvokeServer` / `ConfigureInvokeClient` | `HandleOnServer` / `HandleOnClient` |
-| `OnTopic` / `RouteToTopic` | `WithTopic` |
-| `UseDeserializer` / `UseSerializer` / `UseHandler` | `WithDeserializer` / `WithSerializer` / `WithHandler` |
-| `IManagedHubContext` / `TryInvokeClientAsync` | `ITopicHubContext` / `Handle` |
-| Manual `MapHub<T>` | `MapTopicHubs()` |
-| Lifecycle “hooks” | Standard `OnConnectedAsync` / `OnDisconnectedAsync` |
+and the GitHub repository:  
+https://github.com/farazzbhn/SignalR.Topics  
 
-Also new: hub-level fluent auth/CORS/conventions, topic `[Authorize]` on handlers, modular seal/validate at map time, and cancellation support on handlers / outbound `Handle`.
-
-## When to use this (and when not to)
-
-**Use it when** you have many message shapes, want handlers outside the hub, need per-topic payload formats, or register hubs from multiple modules and want one `MapTopicHubs()` on the host.
-
-**Prefer plain SignalR** (or Hub → MediatR) when you only have a few hub methods and are happy with named methods / `Hub<TClient>`.
-
-## Links
-
-- NuGet: [ManagedDotNet.SignalR.Topics](https://www.nuget.org/packages/ManagedDotNet.SignalR.Topics)
-- GitHub: [farazzbhn/SignalR.Topics](https://github.com/farazzbhn/SignalR.Topics)
-- Library docs: [src/README.md](https://github.com/farazzbhn/SignalR.Topics/blob/master/src/README.md)
-- Runnable demo: [Examples/README.md](https://github.com/farazzbhn/SignalR.Topics/blob/master/Examples/README.md)
-
-Questions and issues welcome on the repository — the OrderBook sample (JWT roles + subscribe/update/terminate) is the fastest way to see the full loop.
+For more details, examples, and to ask questions, check out the repository — everything you need to get started is there (including a full OrderBook server + C# client demo). Happy building!
