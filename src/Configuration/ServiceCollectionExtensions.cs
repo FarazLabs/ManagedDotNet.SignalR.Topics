@@ -28,23 +28,20 @@ public static class ServiceCollectionExtensions
     )
         where THub : TopicHub
     {
-        EnsureCoreServices(services);
+        AddFramework(services);
 
         EndpointOptionRegistry frameworkOptions = EndpointOptionRegistry.GetOrCreate(services);
         return frameworkOptions.AddTopicHub<THub>(path);
     }
 
-    private static void EnsureCoreServices
-    (
-        IServiceCollection services
-    )
+    private static void AddFramework(IServiceCollection services)
     {
         services.TryAddSingleton(typeof(ITopicHubContext<>), typeof(TopicHubContext<>));
 
         // Command dispatcher resolved into TopicHub instances
         services.TryAddScoped<IHubCommandDispatcher, HubCommandDispatcher>();
 
-        // Topic [Authorize] on handlers resolves IAuthorizationService at dispatch
+        // Topic RequireAuthorization resolves IAuthorizationService at dispatch
         services.AddAuthorization();
     }
 }

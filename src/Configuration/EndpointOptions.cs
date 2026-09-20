@@ -1,9 +1,9 @@
+using ManagedDotNet.SignalR.Topics.Types.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.DependencyInjection;
-using ManagedDotNet.SignalR.Topics.Types.Exceptions;
 
 namespace ManagedDotNet.SignalR.Topics.Configuration;
 
@@ -51,6 +51,10 @@ public sealed class EndpointOptions
     {
         Services = null;
         _frozen = true;
+        foreach (HandleOnServerConfiguration cfg in _handleOnServerConfigurations.Values)
+            cfg.Freeze();
+        foreach (HandleOnClientConfiguration cfg in _handleOnClientConfigurations.Values)
+            cfg.Freeze();
     }
 
     private void ThrowIfFrozen()
@@ -80,13 +84,12 @@ public sealed class EndpointOptions
     // MapHub parity: neither call → no endpoint auth metadata (fallback policy still applies).
     internal bool RequiresAuthorization => _authorizeData.Length > 0 || _authorizationPolicies.Length > 0;
     internal bool AllowsAnonymous => _allowsAnonymous && !RequiresAuthorization;
-
     internal IAuthorizeData[] AuthorizeData => _authorizeData;
     internal AuthorizationPolicy[] AuthorizationPolicies => _authorizationPolicies;
 
-    
-    /// <summary>
-    /// Requires the default authorization policy to connect to this hub (MapHub-style).
+
+    /// <summary> <b>Optional</b> 
+    /// | Requires the default authorization policy to connect to this hub (MapHub-style). 
     /// </summary>
     public EndpointOptions RequireAuthorization()
     {
@@ -95,9 +98,8 @@ public sealed class EndpointOptions
         return this;
     }
 
-    /// <summary>
-    /// Requires the named authorization policies to connect to this hub.
-    /// </summary>
+    /// <summary> <b>Optional</b> | 
+    /// Requires the named authorization policies to connect to this hub. </summary>
     public EndpointOptions RequireAuthorization(params string[] policyNames)
     {
         ThrowIfFrozen();
@@ -107,9 +109,8 @@ public sealed class EndpointOptions
         return this;
     }
 
-    /// <summary>
-    /// Requires the given authorize data (e.g. <see cref="AuthorizeAttribute"/> with Roles) to connect to this hub.
-    /// </summary>
+    /// <summary> <b>Optional</b> |
+    ///  Requires the given authorize data (e.g. <see cref="AuthorizeAttribute"/> with Roles) to connect to this hub. </summary>
     public EndpointOptions RequireAuthorization(params IAuthorizeData[] authorizeData)
     {
         ThrowIfFrozen();
@@ -117,7 +118,7 @@ public sealed class EndpointOptions
         return this;
     }
 
-    /// <summary>
+    /// <summary> <b>Optional</b> |
     /// Requires the given authorization policy to connect to this hub.
     /// </summary>
     public EndpointOptions RequireAuthorization(AuthorizationPolicy policy)
@@ -127,7 +128,7 @@ public sealed class EndpointOptions
         return this;
     }
 
-    /// <summary>
+    /// <summary> <b>Optional</b> |
     /// Builds a policy via <paramref name="configurePolicy"/> and requires it to connect to this hub.
     /// </summary>
     public EndpointOptions RequireAuthorization(Action<AuthorizationPolicyBuilder> configurePolicy)
@@ -138,7 +139,7 @@ public sealed class EndpointOptions
         return RequireAuthorization(builder.Build());
     }
 
-    /// <summary>
+    /// <summary> <b>Optional</b> |
     /// Allows anonymous connections to this hub.
     /// </summary>
     public EndpointOptions AllowAnonymous()
@@ -157,11 +158,10 @@ public sealed class EndpointOptions
 
     // Last RequireCors call wins (MapHub usually sets one policy per hub).
     private Action<HubEndpointConventionBuilder>? _applyCors;
-
     internal Action<HubEndpointConventionBuilder>? ApplyCors => _applyCors;
 
-    /// <summary>
-    /// Adds the default CORS policy to this hub (MapHub-style <c>RequireCors()</c>).
+    /// <summary> <b>Optional</b> |
+    ///  Adds the default CORS policy to this hub (MapHub-style <c>RequireCors()</c>). 
     /// </summary>
     public EndpointOptions RequireCors()
     {
@@ -170,8 +170,8 @@ public sealed class EndpointOptions
         return this;
     }
 
-    /// <summary>
-    /// Adds the named CORS policy to this hub.
+    /// <summary> <b>Optional</b> |
+    ///  Adds the named CORS policy to this hub. 
     /// </summary>
     public EndpointOptions RequireCors(string policyName)
     {
@@ -180,8 +180,8 @@ public sealed class EndpointOptions
         return this;
     }
 
-    /// <summary>
-    /// Builds a CORS policy via <paramref name="configurePolicy"/> and requires it on this hub.
+    /// <summary> <b>Optional</b> |
+    ///  Builds a CORS policy via <paramref name="configurePolicy"/> and requires it on this hub. 
     /// </summary>
     public EndpointOptions RequireCors(Action<CorsPolicyBuilder> configurePolicy)
     {
@@ -196,12 +196,10 @@ public sealed class EndpointOptions
     #region CONNECTION OPTIONS
 
     private Action<HttpConnectionDispatcherOptions>? _configureHttpConnection;
-
     internal Action<HttpConnectionDispatcherOptions>? ConfigureHttpConnectionCallback => _configureHttpConnection;
 
-    /// <summary>
-    /// Configures SignalR HTTP connection dispatcher options for this hub
-    /// (same as the <c>MapHub&lt;THub&gt;(path, configureOptions)</c> overload).
+    /// <summary> <b>Optional</b> | 
+    /// Configures SignalR HTTP connection dispatcher options for this hub (MapHub-style <c>ConfigureHttpConnection</c>).
     /// </summary>
     public EndpointOptions ConfigureHttpConnection(Action<HttpConnectionDispatcherOptions> configureOptions)
     {
@@ -216,12 +214,9 @@ public sealed class EndpointOptions
     #region ENDPOINT CONVENTIONS
 
     private readonly List<Action<HubEndpointConventionBuilder>> _endpointConventions;
-
     internal IReadOnlyList<Action<HubEndpointConventionBuilder>> EndpointConventions => _endpointConventions;
 
-    /// <summary>
-    /// Adds arbitrary endpoint metadata to this hub (MapHub-style <c>WithMetadata</c>).
-    /// </summary>
+    /// <summary> <b>Optional</b> | Adds arbitrary endpoint metadata to this hub (MapHub-style <c>WithMetadata</c>). </summary>
     public EndpointOptions WithMetadata(params object[] items)
     {
         ThrowIfFrozen();
@@ -229,9 +224,7 @@ public sealed class EndpointOptions
         return this;
     }
 
-    /// <summary>
-    /// Restricts this hub to the given hosts (MapHub-style <c>RequireHost</c>).
-    /// </summary>
+    /// <summary> <b>Optional</b> | Restricts this hub to the given hosts (MapHub-style <c>RequireHost</c>). </summary>
     public EndpointOptions RequireHost(params string[] hosts)
     {
         ThrowIfFrozen();
@@ -239,9 +232,7 @@ public sealed class EndpointOptions
         return this;
     }
 
-    /// <summary>
-    /// Sets the display name for this hub endpoint (MapHub-style <c>WithDisplayName</c>).
-    /// </summary>
+    /// <summary> <b>Optional</b> | Sets the display name for this hub endpoint (MapHub-style <c>WithDisplayName</c>). </summary>
     public EndpointOptions WithDisplayName(string displayName)
     {
         ThrowIfFrozen();
@@ -249,10 +240,7 @@ public sealed class EndpointOptions
         return this;
     }
 
-    /// <summary>
-    /// Escape hatch for any other <see cref="HubEndpointConventionBuilder"/> conventions
-    /// not mirrored on this type.
-    /// </summary>
+    /// <summary> <b>Optional</b> | Escape hatch for any other <see cref="HubEndpointConventionBuilder"/> conventions not mirrored on this type. </summary>
     public EndpointOptions ConfigureEndpoint(Action<HubEndpointConventionBuilder> configure)
     {
         ThrowIfFrozen();
@@ -271,19 +259,23 @@ public sealed class EndpointOptions
     internal IReadOnlyDictionary<string, HandleOnServerConfiguration> HandleOnServerConfigurations => _handleOnServerConfigurations;
     internal IReadOnlyDictionary<Type, HandleOnClientConfiguration> HandleOnClientConfigurations => _handleOnClientConfigurations;
 
-    /// <summary>
-    /// Configures how messages are sent to clients
-    /// </summary>
-    /// <typeparam name="TOutboundMessage">Message type to send</typeparam>
-    /// <param name="configurer">Configuration builder</param>
+    /// <summary> <b>Required</b> | Configures how messages are sent to clients </summary>
     public EndpointOptions HandleOnClient<TOutboundMessage>(Action<HandleOnClientConfiguration<TOutboundMessage>> configurer)
     {
         ThrowIfFrozen();
         HandleOnClientConfiguration<TOutboundMessage> configuration = new HandleOnClientConfiguration<TOutboundMessage>();
 
         configurer.Invoke(configuration);
+        configuration.EnsureIsValid();
 
-        // One outbound DTO type → one topic per hub (WithTopic checked in MapTopicHubs → EnsureIsValid)
+        // Same hub must not emit two outbound types on one topic string
+        if (_handleOnClientConfigurations.Values.Any(c => c.Topic == configuration.Topic))
+        {
+            throw new MisconfiguredException(
+                $"Topic '{configuration.Topic}' is already registered on hub '{HubType.FullName}'. Use a distinct topic per HandleOnClient binding.");
+        }
+
+        // One outbound DTO type → one topic per hub
         if (!_handleOnClientConfigurations.TryAdd(typeof(TOutboundMessage), configuration))
         {
             throw new MisconfiguredException(
@@ -293,11 +285,7 @@ public sealed class EndpointOptions
         return this;
     }
 
-    /// <summary>
-    /// Configures how messages are received from clients
-    /// </summary>
-    /// <typeparam name="TInboundMessage">Message type to receive</typeparam>
-    /// <param name="configurer">Configuration builder</param>
+    /// <summary> <b>Required</b> | Configures how messages are received from clients </summary>
     public EndpointOptions HandleOnServer<TInboundMessage>(Action<HandleOnServerConfiguration<TInboundMessage>> configurer)
     {
         ThrowIfFrozen();

@@ -30,7 +30,9 @@ public sealed class TopicHubEndToEndTests : IAsyncLifetime
         builder.Services.AddTopicHub<PingHub>("/e2e")
             .RequireAuthorization()
             .HandleOnServer<PingCommand>(cfg =>
-                cfg.WithTopic("auth").WithHandler<AuthSuccessHandler>())
+                cfg.WithTopic("auth")
+                    .RequireAuthorization()
+                    .WithHandler<AuthSuccessHandler>())
             .HandleOnServer<PingCommand>(cfg =>
                 cfg.WithTopic("echo").WithHandler<EchoPingHandler>())
             .HandleOnClient<OutboundUpdate>(cfg => cfg.WithTopic("update"));
@@ -62,6 +64,13 @@ public sealed class TopicHubEndToEndTests : IAsyncLifetime
         await using HubConnection connection = Connect();
         await connection.StartAsync();
         Assert.Equal(HubConnectionState.Connected, connection.State);
+    }
+
+    [Fact]
+    public async Task Hub_anonymous_connect_is_rejected()
+    {
+        await using HubConnection connection = new HubConnectionBuilder().WithUrl(_hubUrl).Build();
+        await Assert.ThrowsAnyAsync<HttpRequestException>(() => connection.StartAsync());
     }
 
     [Fact]

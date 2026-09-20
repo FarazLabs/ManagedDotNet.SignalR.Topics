@@ -3,7 +3,6 @@ using System.Security.Claims;
 using ManagedDotNet.SignalR.Topics.Abstractions;
 using ManagedDotNet.SignalR.Topics.Configuration;
 using ManagedDotNet.SignalR.Topics.Core;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -84,13 +83,44 @@ internal sealed class PlainTextHandler : IHubCommandHandler<PlainTextCommand>
     }
 }
 
-[Authorize(Roles = "Admin")]
 internal sealed class AdminOnlyHandler : IHubCommandHandler<PingCommand>
 {
-    public Task Handle(PingCommand request, HubCallerContext context, CancellationToken cancellationToken) => Task.CompletedTask;
+    private readonly HandlerCapture _capture;
+
+    public AdminOnlyHandler
+    (
+        HandlerCapture capture
+    )
+    {
+        _capture = capture;
+    }
+
+    public Task Handle(PingCommand request, HubCallerContext context, CancellationToken cancellationToken)
+    {
+        _capture.Invocations.Enqueue((request, context.ConnectionId));
+        return Task.CompletedTask;
+    }
 }
 
-[Authorize]
+internal sealed class TopicAllowAnonymousHandler : IHubCommandHandler<PingCommand>
+{
+    private readonly HandlerCapture _capture;
+
+    public TopicAllowAnonymousHandler
+    (
+        HandlerCapture capture
+    )
+    {
+        _capture = capture;
+    }
+
+    public Task Handle(PingCommand request, HubCallerContext context, CancellationToken cancellationToken)
+    {
+        _capture.Invocations.Enqueue((request, context.ConnectionId));
+        return Task.CompletedTask;
+    }
+}
+
 internal sealed class AuthSuccessHandler : IHubCommandHandler<PingCommand>
 {
     private readonly HandlerCapture _capture;

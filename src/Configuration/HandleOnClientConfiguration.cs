@@ -4,6 +4,17 @@ namespace ManagedDotNet.SignalR.Topics.Configuration;
 
 public abstract class HandleOnClientConfiguration
 {
+    private bool _frozen;
+
+    internal void Freeze() => _frozen = true;
+
+    protected void ThrowIfFrozen()
+    {
+        if (_frozen)
+            throw new InvalidOperationException(
+                "Cannot modify HandleOnClient configuration after MapTopicHubs() has sealed configuration.");
+    }
+
     internal string? Topic { get; set; } = null;
     internal abstract string Serialize(object? message);
 
@@ -32,6 +43,7 @@ public sealed class HandleOnClientConfiguration<TModel> : HandleOnClientConfigur
     /// </summary>
     public HandleOnClientConfiguration<TModel> WithTopic(string topic)
     {
+        ThrowIfFrozen();
         base.Topic = topic;
         return this;
     }
@@ -42,6 +54,7 @@ public sealed class HandleOnClientConfiguration<TModel> : HandleOnClientConfigur
     /// </summary>
     public HandleOnClientConfiguration<TModel> WithSerializer(Func<TModel?, string> serializer)
     {
+        ThrowIfFrozen();
         Serializer = serializer;
         return this;
     }

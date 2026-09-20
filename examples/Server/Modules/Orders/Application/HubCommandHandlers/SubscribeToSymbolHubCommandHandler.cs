@@ -1,20 +1,15 @@
 using ManagedDotNet.SignalR.Topics.Examples.Server.Modules.Orders.Infrastructure;
 using ManagedDotNet.SignalR.Topics.Examples.Server.Modules.Orders.Models;
 using ManagedDotNet.SignalR.Topics.Examples.Shared;
-using ManagedDotNet.SignalR.Topics.Examples.Shared.Services;
-using ManagedDotNet.SignalR.Topics.Examples.Shared.Utilities;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using ManagedDotNet.SignalR.Topics.Abstractions;
 using ManagedDotNet.SignalR.Topics.Core;
 using ManagedDotNet.SignalR.Topics.Examples.Server.Modules.Orders;
-using static ManagedDotNet.SignalR.Topics.Examples.Shared.Services.AuthService;
 
 namespace ManagedDotNet.SignalR.Topics.Examples.Server.Modules.Orders.Application.HubCommandHandlers;
 
 
-[Authorize(Roles = $"{Roles.User},{Roles.Administrator}")]
 public class SubscribeToSymbolHubCommandHandler : IHubCommandHandler<SubscribeToSymbolCommand>
 {
     private readonly ITopicHubContext<OrderBookHub> _hubContext;

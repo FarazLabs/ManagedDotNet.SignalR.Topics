@@ -1,12 +1,23 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
 using ManagedDotNet.SignalR.Topics.Abstractions;
 using ManagedDotNet.SignalR.Topics.Types.Exceptions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 
 namespace ManagedDotNet.SignalR.Topics.Configuration;
 
 public abstract class HandleOnServerConfiguration
 {
+    private bool _frozen;
+
+    internal void Freeze() => _frozen = true;
+
+    protected void ThrowIfFrozen()
+    {
+        if (_frozen)
+            throw new InvalidOperationException(
+                "Cannot modify HandleOnServer configuration after MapTopicHubs() has sealed configuration.");
+    }
+
     internal string? Topic { get; set; } = null;
     internal Type? HandlerType { get; set; } = null;
     internal IAuthorizeData[] AuthorizeData { get; set; } = Array.Empty<IAuthorizeData>();
@@ -42,6 +53,7 @@ public sealed class HandleOnServerConfiguration<TModel> : HandleOnServerConfigur
     /// </summary>
     public HandleOnServerConfiguration<TModel> WithTopic(string topic)
     {
+        ThrowIfFrozen();
         base.Topic = topic;
         return this;
     }
@@ -52,25 +64,61 @@ public sealed class HandleOnServerConfiguration<TModel> : HandleOnServerConfigur
     /// </summary>
     public HandleOnServerConfiguration<TModel> WithDeserializer(Func<string, TModel?> deserializer)
     {
+        ThrowIfFrozen();
         this.Deserializer = deserializer;
         return this;
     }
 
-    /// <summary>
-    /// <b>Required</b> | Sets the handler type for processing messages 
-    /// </summary>
+    /// <summary> <b>Required</b> | Sets the handler type for processing messages  </summary>
     public HandleOnServerConfiguration<TModel> WithHandler<THandler>() where THandler : IHubCommandHandler<TModel>
     {
+        ThrowIfFrozen();
         HandlerType = typeof(THandler);
-
-        // Bake [Authorize] / [AllowAnonymous] from the handler class (SignalR method-attr equivalent).
-        Attribute[] attrs = Attribute.GetCustomAttributes(typeof(THandler), inherit: true);
-        AuthorizeData = attrs.OfType<IAuthorizeData>().ToArray();
-        IsAnonymousAllowed = attrs.OfType<IAllowAnonymous>().Any();
 
         Invoke = (handler, cmd, ctx, ct) =>
             ((IHubCommandHandler<TModel>)handler).Handle((TModel)cmd!, ctx, ct);
 
+        return this;
+    }
+
+    
+    /// <summary> <b>Optional</b> | Requires the default authorization policy to invoke this topic. </summary>
+    public HandleOnServerConfiguration<TModel> RequireAuthorization()
+    {
+        ThrowIfFrozen();
+        AuthorizeData = AuthorizeData.Append(new AuthorizeAttribute()).ToArray();
+        IsAnonymousAllowed = false;
+        return this;
+    }
+
+    /// <summary> <b>Optional</b> | Requires the named authorization policies to invoke this topic. </summary>
+    public HandleOnServerConfiguration<TModel> RequireAuthorization(params string[] policyNames)
+    {
+        ThrowIfFrozen();
+        AuthorizeData = AuthorizeData
+            .Concat(policyNames.Select(static name => (IAuthorizeData)new AuthorizeAttribute { Policy = name }))
+            .ToArray();
+        IsAnonymousAllowed = false;
+        return this;
+    }
+
+    /// <summary> <b>Optional</b> | Requires the given authorize data (e.g. <see cref="AuthorizeAttribute"/> with Roles) to invoke this topic. </summary>
+    public HandleOnServerConfiguration<TModel> RequireAuthorization(params IAuthorizeData[] authorizeData)
+    {
+        ThrowIfFrozen();
+        AuthorizeData = AuthorizeData.Concat(authorizeData).ToArray();
+        IsAnonymousAllowed = false;
+        return this;
+    }
+
+    /// <summary>
+    /// Allows anonymous invocation of this topic (skips topic-level authorization).
+    /// </summary>
+    public HandleOnServerConfiguration<TModel> AllowAnonymous()
+    {
+        ThrowIfFrozen();
+        AuthorizeData = Array.Empty<IAuthorizeData>();
+        IsAnonymousAllowed = true;
         return this;
     }
 

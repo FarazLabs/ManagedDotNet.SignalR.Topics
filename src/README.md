@@ -27,7 +27,7 @@ Two directions, two configs:
 - 📫 **Topic-based hubs** — type-safe bindings between topics and message types for incoming/outgoing messages
 - 🧩 **Decoupled message handling** — Native MediatR-style command handlers keep business logic (application layer) isolated from hub logic (infrastructure)
 - 🛠️ **Custom (de)serializers** — per message type, or default `System.Text.Json` (`JsonSerializerDefaults.Web`: camelCase, case-insensitive)
-- 🔐 **Authorization** — hub-level via `RequireAuthorization` / `AllowAnonymous` on `AddTopicHub` (MapHub-style); topic-level via `[Authorize]` / `[AllowAnonymous]` on handlers
+- 🔐 **Authorization** — hub-level and topic-level via `RequireAuthorization` / `AllowAnonymous` (fluent on `AddTopicHub` / `HandleOnServer`)
 - 🌐 **MapHub parity** — `RequireCors`, `ConfigureHttpConnection`, `WithMetadata`, `RequireHost`, `WithDisplayName`, and `ConfigureEndpoint` on `AddTopicHub` (applied by `MapTopicHubs`)
 - 🔌**Modular setup** — `AddTopicHub` per module; `MapTopicHubs()` validates bindings and maps all hubs on the host
 
@@ -61,6 +61,7 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
 
     .HandleOnServer<SubscribeToSymbolCommand>(cfg =>
         cfg.WithTopic("subscribe")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "User,Administrator" })
             .WithDeserializer(str => new SubscribeToSymbolCommand
             {
                 Symbol = str.Trim().ToUpper()
@@ -69,6 +70,7 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
 
     .HandleOnServer<UnsubscribeFromSymbolCommand>(cfg =>
         cfg.WithTopic("unsubscribe")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "User,Administrator" })
             .WithDeserializer(str => new UnsubscribeFromSymbolCommand
             {
                 Symbol = str.Trim().ToUpper()
@@ -77,6 +79,7 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
 
     .HandleOnServer<TerminateCommand>(cfg =>
         cfg.WithTopic("terminate")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "Administrator" })
             .WithHandler<TerminateHubCommandHandler>())
 
     .HandleOnClient<ConnectionAlert>(cfg =>
@@ -130,7 +133,6 @@ public class OrderBookHub : TopicHub
 **Inject** `ITopicHubContext<OrderBookHub>` **to access groups and reply to hub clients**
 
 ```csharp
-[Authorize(Roles = "User,Administrator")]
 public class SubscribeToSymbolHubCommandHandler : IHubCommandHandler<SubscribeToSymbolCommand>
 {
     private readonly ITopicHubContext<OrderBookHub> _hubContext;
@@ -158,7 +160,6 @@ public class SubscribeToSymbolHubCommandHandler : IHubCommandHandler<SubscribeTo
     }
 }
 
-[Authorize(Roles = "Administrator")]
 public class TerminateHubCommandHandler : IHubCommandHandler<TerminateCommand>
 {
     private readonly IHostApplicationLifetime _lifetime;
@@ -202,10 +203,10 @@ app.UseEndpoints(endpoints =>
 Two layers (both must pass when both are set — AND):
 
 
-| Layer                       | How you configure it                                                                              | When it runs                              |
-| --------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| **Hub** (connection)        | Fluent on `AddTopicHub`, same shape as `MapHub(...).RequireAuthorization(...)`                    | `MapTopicHubs` → endpoint conventions     |
-| **Topic** (inbound message) | `[Authorize]` / `[AllowAnonymous]` on the **handler class** (SignalR method-attribute equivalent) | `HubCommandDispatcher` before deserialize |
+| Layer                       | How you configure it                                                                           | When it runs                              |
+| --------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| **Hub** (connection)        | Fluent on `AddTopicHub`, same shape as `MapHub(...).RequireAuthorization(...)`                 | `MapTopicHubs` → endpoint conventions     |
+| **Topic** (inbound message) | Fluent on `HandleOnServer`: `RequireAuthorization` / `AllowAnonymous`                          | `HubCommandDispatcher` before deserialize |
 
 
 
@@ -232,30 +233,29 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
     // .ConfigureEndpoint(hub => hub.WithMetadata(...))        // escape hatch
     .HandleOnServer<SubscribeToSymbolCommand>(cfg =>
         cfg.WithTopic("subscribe")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "User,Administrator" })
             .WithHandler<SubscribeToSymbolHubCommandHandler>());
 ```
 
 Same overloads as `MapHub(...).RequireAuthorization(...)`. `[Authorize]` on the hub class itself is still honored by SignalR and is **not** merged or overridden by fluent — if both are present, both apply.
 
-### Topic (attributes on the handler)
-
-There is no fluent `RequireAuthorization` on `HandleOnServer`. Put attributes on the handler:
+### Topic (fluent on HandleOnServer)
 
 ```csharp
-[Authorize(Roles = "User,Administrator")]
-public class SubscribeToSymbolHubCommandHandler : IHubCommandHandler<SubscribeToSymbolCommand>
-{
-    public Task Handle(SubscribeToSymbolCommand request, HubCallerContext context) { /* ... */ }
-}
+.HandleOnServer<SubscribeToSymbolCommand>(cfg =>
+    cfg.WithTopic("subscribe")
+        .RequireAuthorization()                                              // default policy
+        // .RequireAuthorization("TradingPolicy")
+        // .RequireAuthorization(new AuthorizeAttribute { Roles = "User,Administrator" })
+        .WithHandler<SubscribeToSymbolHubCommandHandler>())
 
-[AllowAnonymous]
-public class SomePublicCommandHandler : IHubCommandHandler<SomePublicCommand>
-{
-    public Task Handle(SomePublicCommand request, HubCallerContext context) { /* ... */ }
-}
+.HandleOnServer<SomePublicCommand>(cfg =>
+    cfg.WithTopic("public")
+        .AllowAnonymous()
+        .WithHandler<SomePublicCommandHandler>())
 ```
 
-Attributes are baked at `.WithHandler<T>()` registration time.
+Topic overloads: `RequireAuthorization()`, named policies (`string[]`), and `IAuthorizeData` (e.g. `AuthorizeAttribute` with Roles). Hub-only: `AuthorizationPolicy` / policy-builder overloads.
 
 ---
 

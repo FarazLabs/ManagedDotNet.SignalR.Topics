@@ -40,14 +40,14 @@ dotnet run --project .\Examples\Clients\CSharpClient\
 ## Authorization (demo)
 
 
-| Layer                       | Rule                                                                   |
-| --------------------------- | ---------------------------------------------------------------------- |
-| Hub connect                 | `RequireAuthorization()` — any valid JWT                               |
-| `subscribe` / `unsubscribe` | `[Authorize(Roles = "User,Administrator")]` on handlers                |
-| `terminate`                 | `[Authorize(Roles = "Administrator")]` on `TerminateHubCommandHandler` |
+| Layer                       | Rule                                                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------- |
+| Hub connect                 | `RequireAuthorization()` — any valid JWT                                                          |
+| `subscribe` / `unsubscribe` | `.RequireAuthorization(new AuthorizeAttribute { Roles = "User,Administrator" })` on `HandleOnServer` |
+| `terminate`                 | `.RequireAuthorization(new AuthorizeAttribute { Roles = "Administrator" })` on `HandleOnServer`   |
 
 
-Fluent hub auth matches `MapHub` (`string` / `IAuthorizeData` / `AuthorizationPolicy` / policy builder). This demo only uses the default-policy overload — see `src/README.md` → Authorization for the full set.
+Fluent hub auth matches `MapHub` (`string` / `IAuthorizeData` / `AuthorizationPolicy` / policy builder). Topic auth uses `RequireAuthorization()` / named policies / `IAuthorizeData` on `HandleOnServer`. This demo uses default-policy hub auth plus role-based topic auth — see `src/README.md` → Authorization.
 
 Other MapHub-parity options (`RequireCors`, `ConfigureHttpConnection`, `WithMetadata`, `RequireHost`, `WithDisplayName`, `ConfigureEndpoint`) are also available on `AddTopicHub` — see `src/README.md` → Endpoint conventions.
 
@@ -89,6 +89,7 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
 
     .HandleOnServer<SubscribeToSymbolCommand>(cfg =>
         cfg.WithTopic("subscribe")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "User,Administrator" })
             .WithDeserializer(str => new SubscribeToSymbolCommand
             {
                 Symbol = str.Trim().ToUpper()
@@ -97,6 +98,7 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
 
     .HandleOnServer<UnsubscribeFromSymbolCommand>(cfg =>
         cfg.WithTopic("unsubscribe")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "User,Administrator" })
             .WithDeserializer(str => new UnsubscribeFromSymbolCommand
             {
                 Symbol = str.Trim().ToUpper()
@@ -105,6 +107,7 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
 
     .HandleOnServer<TerminateCommand>(cfg =>
         cfg.WithTopic("terminate")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "Administrator" })
             .WithHandler<TerminateHubCommandHandler>())
 
     .HandleOnClient<ConnectionAlert>(cfg =>

@@ -29,7 +29,7 @@ internal class HubCommandDispatcher : IHubCommandDispatcher
         if (!configuration.HandleOnServerConfigurations.TryGetValue(topic, out HandleOnServerConfiguration? route))
             throw new MissingConfigurationException($"No configuration found for topic {topic}. Please ensure it is registered with HandleOnServer<TModel>().");
 
-        // Per-topic auth from [Authorize] on the handler class — before deserialize.
+        // Per-topic auth from HandleOnServer.RequireAuthorization — before deserialize.
         if (!route.IsAnonymousAllowed && route.AuthorizeData.Length > 0)
         {
             IAuthorizationPolicyProvider policyProvider = _serviceProvider.GetRequiredService<IAuthorizationPolicyProvider>();
@@ -44,6 +44,8 @@ internal class HubCommandDispatcher : IHubCommandDispatcher
         }
 
         cancellationToken.ThrowIfCancellationRequested();
+
+        ArgumentNullException.ThrowIfNull(message);
 
         object? command = route.Deserialize(message);
         if (command is null)

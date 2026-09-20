@@ -2,6 +2,7 @@ using ManagedDotNet.SignalR.Topics.Configuration;
 using ManagedDotNet.SignalR.Topics.Types.Exceptions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using SignalR.Topics.Tests.Fixtures;
 
@@ -40,6 +41,61 @@ public sealed class ConfigurationTests
                 cfg.WithTopic("late")
                     .WithHandler<PingHandler>()));
         Assert.Contains("sealed", frozen.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Nested_HandleOn_mutators_throw_after_MapTopicHubs()
+    {
+        HandleOnServerConfiguration<PingCommand>? inbound = null;
+        HandleOnClientConfiguration<OutboundUpdate>? outbound = null;
+
+        WebApplicationBuilder builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddSingleton<HandlerCapture>();
+        builder.Services.AddSignalR();
+        builder.Services.AddTopicHub<PingHub>("/ping")
+            .AllowAnonymous()
+            .HandleOnServer<PingCommand>(cfg =>
+            {
+                inbound = cfg;
+                cfg.WithTopic("ping").WithHandler<PingHandler>();
+            })
+            .HandleOnClient<OutboundUpdate>(cfg =>
+            {
+                outbound = cfg;
+                cfg.WithTopic("update");
+            });
+
+        await using WebApplication app = builder.Build();
+        app.MapTopicHubs();
+
+        Assert.Throws<InvalidOperationException>(() => inbound!.WithTopic("hacked"));
+        Assert.Throws<InvalidOperationException>(() => outbound!.WithTopic("hacked"));
+    }
+
+    // MapHub parity: neither RequireAuthorization nor AllowAnonymous → anonymously connectable.
+    [Fact]
+    public async Task Hub_without_fluent_auth_allows_anonymous_connect()
+    {
+        WebApplicationBuilder builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddSingleton<HandlerCapture>();
+        builder.Services.AddSignalR();
+        builder.Services.AddTopicHub<PingHub>("/open")
+            .HandleOnServer<PingCommand>(cfg =>
+                cfg.WithTopic("ping")
+                    .WithHandler<PingHandler>())
+            .HandleOnClient<OutboundUpdate>(cfg =>
+                cfg.WithTopic("update"));
+
+        await using WebApplication app = builder.Build();
+        app.MapTopicHubs();
+        await app.StartAsync();
+
+        string hubUrl = $"{app.Urls.First().TrimEnd('/')}/open";
+        await using HubConnection connection = new HubConnectionBuilder().WithUrl(hubUrl).Build();
+        await connection.StartAsync();
+        Assert.Equal(HubConnectionState.Connected, connection.State);
     }
 
     [Fact]
@@ -92,6 +148,21 @@ public sealed class ConfigurationTests
     }
 
     [Fact]
+    public void Duplicate_outbound_topic_throws_MisconfiguredException()
+    {
+        ServiceCollection services = new ServiceCollection();
+        services.AddSignalR();
+
+        EndpointOptions options = services.AddTopicHub<PingHub>("/ping");
+        options.HandleOnClient<OutboundUpdate>(cfg => cfg.WithTopic("update"));
+
+        MisconfiguredException ex = Assert.Throws<MisconfiguredException>(() =>
+            options.HandleOnClient<UnregisteredOutbound>(cfg => cfg.WithTopic("update")));
+
+        Assert.Contains("already registered", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Incomplete_WithHandler_throws_MisconfiguredException()
     {
         ServiceCollection services = new ServiceCollection();
@@ -106,21 +177,15 @@ public sealed class ConfigurationTests
     }
 
     [Fact]
-    public void Incomplete_outbound_WithTopic_throws_at_MapTopicHubs()
+    public void Incomplete_outbound_WithTopic_throws_MisconfiguredException()
     {
-        WebApplicationBuilder builder = WebApplication.CreateBuilder();
-        builder.Services.AddSingleton<HandlerCapture>();
-        builder.Services.AddSignalR();
-        builder.Services.AddTopicHub<PingHub>("/ping")
-            .HandleOnServer<PingCommand>(cfg =>
-                cfg.WithTopic("ping")
-                    .WithHandler<PingHandler>())
-            .HandleOnClient<OutboundUpdate>(_ => { });
+        ServiceCollection services = new ServiceCollection();
+        services.AddSignalR();
 
-        using WebApplication app = builder.Build();
+        EndpointOptions options = services.AddTopicHub<PingHub>("/ping");
 
         MisconfiguredException ex = Assert.Throws<MisconfiguredException>(() =>
-            app.MapTopicHubs());
+            options.HandleOnClient<OutboundUpdate>(_ => { }));
 
         Assert.Contains("Topic is not configured", ex.Message, StringComparison.Ordinal);
     }

@@ -5,9 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - 2026-09-19
+## [1.0.0] - 2026-09-20
 
-Initial NuGet release of `ManagedDotNet.SignalR.Topics`.
+First public NuGet release of `ManagedDotNet.SignalR.Topics`.
 
 ### Added
 
@@ -17,3 +17,4 @@ Initial NuGet release of `ManagedDotNet.SignalR.Topics`.
 - Hub-level `RequireAuthorization` / `AllowAnonymous`, plus MapHub-parity conventions (`RequireCors`, `ConfigureHttpConnection`, host/display/metadata)
 - Default JSON (de)serialization via `JsonSerializerDefaults.Web` (camelCase, case-insensitive)
 - Optional `CancellationToken` on outbound `TopicClientProxy.Handle` forwarded to `SendAsync`
+- Eager misconfiguration checks when registering incomplete `HandleOnServer` / `HandleOnClient` bindings

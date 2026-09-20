@@ -26,6 +26,18 @@ public sealed class HubCommandDispatcherTests
     }
 
     [Fact]
+    public async Task Null_message_throws_ArgumentNullException()
+    {
+        (ServiceProvider sp, EndpointOptionRegistry _, HandlerCapture _) = TestServiceFactory.CreatePingServices();
+        await using ServiceProvider _ = sp;
+
+        HubCommandDispatcher dispatcher = (HubCommandDispatcher)sp.GetRequiredService<ManagedDotNet.SignalR.Topics.Abstractions.IHubCommandDispatcher>();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            dispatcher.DispatchAsync(typeof(PingHub), "ping", null!, new TestHubCallerContext(), CancellationToken.None));
+    }
+
+    [Fact]
     public async Task Null_deserialize_throws_ArgumentNullException()
     {
         (ServiceProvider sp, EndpointOptionRegistry _, HandlerCapture _) = TestServiceFactory.CreatePingServices(
@@ -73,6 +85,7 @@ public sealed class HubCommandDispatcherTests
             .AllowAnonymous()
             .HandleOnServer<PingCommand>(cfg =>
                 cfg.WithTopic("admin")
+                    .RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" })
                     .WithHandler<AdminOnlyHandler>())
             .HandleOnClient<OutboundUpdate>(cfg =>
                 cfg.WithTopic("update"));
@@ -88,6 +101,68 @@ public sealed class HubCommandDispatcherTests
             dispatcher.DispatchAsync(typeof(PingHub), "admin", "{\"Value\":\"x\"}", context, CancellationToken.None));
 
         Assert.Contains("unauthorized", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Admin_role_invokes_authorized_handler()
+    {
+        ServiceCollection services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAuthorization();
+        services.AddSingleton<HandlerCapture>();
+        services.AddSignalR();
+
+        services.AddTopicHub<PingHub>("/ping")
+            .AllowAnonymous()
+            .HandleOnServer<PingCommand>(cfg =>
+                cfg.WithTopic("admin")
+                    .RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" })
+                    .WithHandler<AdminOnlyHandler>())
+            .HandleOnClient<OutboundUpdate>(cfg =>
+                cfg.WithTopic("update"));
+
+        await using ServiceProvider sp = services.BuildServiceProvider();
+        HubCommandDispatcher dispatcher = (HubCommandDispatcher)sp.GetRequiredService<ManagedDotNet.SignalR.Topics.Abstractions.IHubCommandDispatcher>();
+        HandlerCapture capture = sp.GetRequiredService<HandlerCapture>();
+
+        ClaimsPrincipal user = TestServiceFactory.CreateUser("Admin");
+        TestHubCallerContext context = new TestHubCallerContext(user);
+
+        await dispatcher.DispatchAsync(typeof(PingHub), "admin", "{\"Value\":\"ok\"}", context, CancellationToken.None);
+
+        Assert.True(capture.Invocations.TryDequeue(out (object Command, string? ConnectionId) hit));
+        Assert.Equal("ok", Assert.IsType<PingCommand>(hit.Command).Value);
+    }
+
+    [Fact]
+    public async Task AllowAnonymous_handler_invokes_for_anonymous_user()
+    {
+        ServiceCollection services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAuthorization();
+        services.AddSingleton<HandlerCapture>();
+        services.AddSignalR();
+
+        services.AddTopicHub<PingHub>("/ping")
+            .AllowAnonymous()
+            .HandleOnServer<PingCommand>(cfg =>
+                cfg.WithTopic("open")
+                    .AllowAnonymous()
+                    .WithHandler<TopicAllowAnonymousHandler>())
+            .HandleOnClient<OutboundUpdate>(cfg =>
+                cfg.WithTopic("update"));
+
+        await using ServiceProvider sp = services.BuildServiceProvider();
+        HubCommandDispatcher dispatcher = (HubCommandDispatcher)sp.GetRequiredService<ManagedDotNet.SignalR.Topics.Abstractions.IHubCommandDispatcher>();
+        HandlerCapture capture = sp.GetRequiredService<HandlerCapture>();
+
+        // Unauthenticated principal — topic AllowAnonymous skips topic auth
+        TestHubCallerContext context = new TestHubCallerContext();
+
+        await dispatcher.DispatchAsync(typeof(PingHub), "open", "{\"Value\":\"anon\"}", context, CancellationToken.None);
+
+        Assert.True(capture.Invocations.TryDequeue(out (object Command, string? ConnectionId) hit));
+        Assert.Equal("anon", Assert.IsType<PingCommand>(hit.Command).Value);
     }
 
     [Fact]

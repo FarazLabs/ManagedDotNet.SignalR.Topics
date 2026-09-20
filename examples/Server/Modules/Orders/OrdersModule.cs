@@ -6,8 +6,10 @@ using ManagedDotNet.SignalR.Topics.Examples.Server.Modules.Orders.Models;
 using ManagedDotNet.SignalR.Topics.Examples.Shared;
 using ManagedDotNet.SignalR.Topics.Examples.Shared.Models;
 using ManagedDotNet.SignalR.Topics.Examples.Shared.Utilities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using ManagedDotNet.SignalR.Topics.Configuration;
+using static ManagedDotNet.SignalR.Topics.Examples.Shared.Services.AuthService;
 
 namespace ManagedDotNet.SignalR.Topics.Examples.Server.Modules.Orders;
 
@@ -21,6 +23,7 @@ public class OrdersModule : IModule
             /****** INBOUND MESSAGES ******/
             .HandleOnServer<SubscribeToSymbolCommand>(cfg =>
                 cfg.WithTopic("subscribe")
+                    .RequireAuthorization(new AuthorizeAttribute { Roles = $"{Roles.User},{Roles.Administrator}" })
                     .WithDeserializer(str =>
                     {
                         PrettyPrint.Inbound("subscribe", str);
@@ -33,6 +36,7 @@ public class OrdersModule : IModule
 
             .HandleOnServer<UnsubscribeFromSymbolCommand>(cfg =>
                 cfg.WithTopic("unsubscribe")
+                    .RequireAuthorization(new AuthorizeAttribute { Roles = $"{Roles.User},{Roles.Administrator}" })
                     .WithDeserializer(str =>
                     {
                         PrettyPrint.Inbound("unsubscribe", str);
@@ -45,6 +49,7 @@ public class OrdersModule : IModule
 
             .HandleOnServer<TerminateCommand>(cfg =>
                 cfg.WithTopic("terminate")
+                    .RequireAuthorization(new AuthorizeAttribute { Roles = Roles.Administrator })
                     .WithDeserializer(str =>
                     {
                         PrettyPrint.Inbound("terminate", str);

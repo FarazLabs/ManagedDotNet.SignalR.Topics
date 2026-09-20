@@ -37,7 +37,7 @@ Under the hood you also get:
 - Per-message (de)serializers — or default `System.Text.Json` with `JsonSerializerDefaults.Web` (camelCase, case-insensitive)
 - Modular setup — `AddTopicHub` per feature module, one `MapTopicHubs()` on the host
 - MapHub-style auth, CORS, connection options, and endpoint conventions
-- Topic-level `[Authorize]` / `[AllowAnonymous]` on handlers
+- Topic-level `RequireAuthorization` / `AllowAnonymous` on `HandleOnServer`
 
 ## Getting started
 
@@ -70,6 +70,7 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
     // 3. Assign the handler (also registers it in DI)
     .HandleOnServer<SubscribeToSymbolCommand>(cfg =>
         cfg.WithTopic("subscribe")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "User,Administrator" })
             .WithDeserializer(str => new SubscribeToSymbolCommand
             {
                 Symbol = str.Trim().ToUpper()
@@ -78,6 +79,7 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
 
     .HandleOnServer<UnsubscribeFromSymbolCommand>(cfg =>
         cfg.WithTopic("unsubscribe")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "User,Administrator" })
             .WithDeserializer(str => new UnsubscribeFromSymbolCommand
             {
                 Symbol = str.Trim().ToUpper()
@@ -86,6 +88,7 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
 
     .HandleOnServer<TerminateCommand>(cfg =>
         cfg.WithTopic("terminate")
+            .RequireAuthorization(new AuthorizeAttribute { Roles = "Administrator" })
             .WithHandler<TerminateHubCommandHandler>())
 
     // --- SERVER → CLIENT ---
@@ -144,14 +147,9 @@ public class OrderBookHub : TopicHub
 
 ### 4. Implement the topic command handlers
 
-`IHubCommandHandler<T>` handlers process incoming commands once they have been deserialized. They are registered with DI via `.WithHandler<T>()` and can take constructor dependencies:
-
-There is no fluent `RequireAuthorization` on `HandleOnServer` — put attributes on the handler instead:
+`IHubCommandHandler<T>` handlers process incoming commands once they have been deserialized. They are registered with DI via `.WithHandler<T>()` and can take constructor dependencies. Put topic auth on the `HandleOnServer` chain, not on the handler class:
 
 ```csharp
-[Authorize(Roles = "User,Administrator")]
-// [Authorize(Policy = "TradingPolicy")]
-// ...
 public class SubscribeToSymbolHubCommandHandler : IHubCommandHandler<SubscribeToSymbolCommand>
 {
     private readonly ITopicHubContext<OrderBookHub> _hubContext;
@@ -176,16 +174,11 @@ public class SubscribeToSymbolHubCommandHandler : IHubCommandHandler<SubscribeTo
             cancellationToken);
     }
 }
-
-// [AllowAnonymous]
-// public class SomePublicCommandHandler : IHubCommandHandler<SomePublicCommand> { ... }
 ```
-
-Attributes are baked at `.WithHandler<T>()` registration time.
 
 At this point, your server knows how to receive messages, handle serialization, and route each topic to the right handler.
 
-**Authorization tip:** hub-level `.RequireAuthorization()` gates *connecting*. Topic-level `[Authorize]` / `[AllowAnonymous]` on the handler gates *invoking that topic*. Both can apply — use handler attributes when different topics need different roles.
+**Authorization tip:** hub-level `.RequireAuthorization()` gates *connecting*. Topic-level `.RequireAuthorization()` / `.AllowAnonymous()` on `HandleOnServer` gates *invoking that topic*. Both can apply — use topic fluent when different topics need different roles.
 
 ### 5. Sending messages from outside the hub
 
