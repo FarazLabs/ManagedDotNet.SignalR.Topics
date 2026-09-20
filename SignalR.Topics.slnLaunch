@@ -1,0 +1,37 @@
+[
+  {
+    "Name": "Demo: Server + Client",
+    "Projects": [
+      {
+        "Path": "examples\\Server\\App\\App.csproj",
+        "Action": "Start",
+        "DebugTarget": "App"
+      },
+      {
+        "Path": "examples\\Clients\\CSharpClient\\CSharpClient.csproj",
+        "Action": "Start",
+        "DebugTarget": "CSharpClient"
+      }
+    ]
+  },
+  {
+    "Name": "App",
+    "Projects": [
+      {
+        "Path": "examples\\Server\\App\\App.csproj",
+        "Action": "Start",
+        "DebugTarget": "App"
+      }
+    ]
+  },
+  {
+    "Name": "CSharpClient",
+    "Projects": [
+      {
+        "Path": "examples\\Clients\\CSharpClient\\CSharpClient.csproj",
+        "Action": "Start",
+        "DebugTarget": "CSharpClient"
+      }
+    ]
+  }
+]

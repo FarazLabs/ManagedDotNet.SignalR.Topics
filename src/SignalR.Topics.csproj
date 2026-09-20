@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ManagedDotNet.SignalR.Topics</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+      <!-- Package metadata -->
+      <PackageId>ManagedDotNet.SignalR.Topics</PackageId>
+      <Version>1.0.0</Version>
+      <Authors>Faraz Zabihian</Authors>
+      <Company>N/A</Company>
+      <Title>ManagedDotNet.SignalR.Topics</Title>
+      <Description>
+          Topic-based SignalR hubs: string-topic routing to DI command handlers, per-type (de)serialization,
+          and typed outbound messaging via topic hub context.
+      </Description>
+      <PackageLicenseExpression>MIT</PackageLicenseExpression>
+      <PackageReadmeFile>README.md</PackageReadmeFile>
+      <RepositoryUrl>https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics</RepositoryUrl>
+      <PackageProjectUrl>https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics</PackageProjectUrl>
+      <RepositoryType>git</RepositoryType>
+      <PackageTags>
+          SignalR,TopicHub,TopicRouting,CommandHandler,HubContext,TypeSafeMessaging,
+          CustomSerialization,ASPNetCore,RealTime,Websocket,TopicHubs
+      </PackageTags>
+
+      <!-- GitHub Packages configuration -->
+      <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+      <PackageOutputPath>nupkgs</PackageOutputPath>
+      <PublishRepositoryUrl>true</PublishRepositoryUrl>
+      <IncludeSymbols>true</IncludeSymbols>
+      <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+      <NeutralLanguage>en</NeutralLanguage>
+      <PublishToGitHubPackages>true</PublishToGitHubPackages>
+    </PropertyGroup>
+
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+    <!-- Include README.md in NuGet package -->
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="SignalR.Topics.Tests" />
+    </ItemGroup>
+
+</Project>
+
