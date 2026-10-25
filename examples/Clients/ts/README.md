@@ -1,6 +1,6 @@
 # TypeScript OrderBook client
 
-Same flow as [`../CSharpClient`](../CSharpClient): anonymous → User → Administrator against `http://localhost:5005/orderBook`, using [`@farazlabs/topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients).
+Same flow as [`../CSharpClient`](../CSharpClient): anonymous ? User ? Administrator against `http://localhost:5005/orderBook`, using [`@manageddotnet/topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients).
 
 ## Prerequisites
 
@@ -26,12 +26,12 @@ pnpm install
 pnpm start
 ```
 
-Uses Node `--experimental-strip-types`. Outbound message classes must **not** use TypeScript constructor parameter properties (`public symbol: string` in the ctor params) — assign fields in the constructor body (see [`src/models.ts`](src/models.ts)).
+Uses Node `--experimental-strip-types`. Outbound message classes must **not** use TypeScript constructor parameter properties (`public symbol: string` in the ctor params) � assign fields in the constructor body (see [`src/models.ts`](src/models.ts)).
 
 ## Registration (mirrors server Orders module)
 
 ```ts
-import { createTopicHubClient } from "@farazlabs/topichub-client";
+import { createTopicHubClient } from "@manageddotnet/topichub-client";
 
 class SubscribeCommand {
   public readonly symbol: string;
@@ -117,8 +117,8 @@ await hub.handle(new TerminateCommand("demo complete"));
 
 Matches `OrderBookHubDemo.RunAsync`:
 
-1. **Anonymous** — connect without JWT → hub auth fails  
-2. **User** — JWT role `User`; subscribe all symbols; on each `update`, unsubscribe; then `terminate` → role auth fails  
-3. **Administrator** — same loop, then `terminate` → server soft-stops  
+1. **Anonymous** � connect without JWT ? hub auth fails  
+2. **User** � JWT role `User`; subscribe all symbols; on each `update`, unsubscribe; then `terminate` ? role auth fails  
+3. **Administrator** � same loop, then `terminate` ? server soft-stops  
 
 Wire topics: `subscribe` / `unsubscribe` (plain symbol string), `terminate` (JSON `{ Reason }`). Inbound: `alert` (plain text), `update` (JSON `OrderBookUpdate`).

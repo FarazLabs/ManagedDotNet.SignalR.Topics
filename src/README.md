@@ -9,33 +9,33 @@ Two directions, two configs:
 
 | Direction       | Client / server call     | Registration                                                  |
 | --------------- | ------------------------ | ------------------------------------------------------------- |
-| Client → server | `Handle(topic, payload)` | `HandleOnServer` — inbound topic → deserializer → handler     |
-| Server → client | `Handle(topic, payload)` | `HandleOnClient` — outbound message type → topic → serializer |
+| Client ? server | `Handle(topic, payload)` | `HandleOnServer` � inbound topic ? deserializer ? handler     |
+| Server ? client | `Handle(topic, payload)` | `HandleOnClient` � outbound message type ? topic ? serializer |
 
 
-- `**Handle(topic, payload)**` — client → server (library hub method)
+- `**Handle(topic, payload)**` � client ? server (library hub method)
 ![Client-To-Server Flow](https://raw.githubusercontent.com/FarazLabs/ManagedDotNet.SignalR.Topics/main/handleOnServer.svg)
-- `**Handle(topic, payload)**` — server → client (listen on the client)
+- `**Handle(topic, payload)**` � server ? client (listen on the client)
 ![Server-to-Client Flow](https://raw.githubusercontent.com/FarazLabs/ManagedDotNet.SignalR.Topics/main/handleOnClient.svg)
 
 ---
 
 
 
-## ✨ Features
+## ? Features
 
-- 📫 **Topic-based hubs** — type-safe bindings between topics and message types for incoming/outgoing messages
-- 🧩 **Decoupled message handling** — Native MediatR-style command handlers keep business logic (application layer) isolated from hub logic (infrastructure)
-- 🛠️ **Custom (de)serializers** — per message type, or default `System.Text.Json` (`JsonSerializerDefaults.Web`: camelCase, case-insensitive)
-- 🔐 **Authorization** — hub-level and topic-level via `RequireAuthorization` / `AllowAnonymous` (fluent on `AddTopicHub` / `HandleOnServer`)
-- 🌐 **MapHub parity** — `RequireCors`, `ConfigureHttpConnection`, `WithMetadata`, `RequireHost`, `WithDisplayName`, and `ConfigureEndpoint` on `AddTopicHub` (applied by `MapTopicHubs`)
-- 🔌**Modular setup** — `AddTopicHub` per module; `MapTopicHubs()` validates bindings and maps all hubs on the host
+- ?? **Topic-based hubs** � type-safe bindings between topics and message types for incoming/outgoing messages
+- ?? **Decoupled message handling** � Native MediatR-style command handlers keep business logic (application layer) isolated from hub logic (infrastructure)
+- ??? **Custom (de)serializers** � per message type, or default `System.Text.Json` (`JsonSerializerDefaults.Web`: camelCase, case-insensitive)
+- ?? **Authorization** � hub-level and topic-level via `RequireAuthorization` / `AllowAnonymous` (fluent on `AddTopicHub` / `HandleOnServer`)
+- ?? **MapHub parity** � `RequireCors`, `ConfigureHttpConnection`, `WithMetadata`, `RequireHost`, `WithDisplayName`, and `ConfigureEndpoint` on `AddTopicHub` (applied by `MapTopicHubs`)
+- ??**Modular setup** � `AddTopicHub` per module; `MapTopicHubs()` validates bindings and maps all hubs on the host
 
 ---
 
 
 
-## 📦 Installation
+## ?? Installation
 
 ```bash
 dotnet add package ManagedDotNet.SignalR.Topics
@@ -47,13 +47,13 @@ Namespaces are `ManagedDotNet.SignalR.Topics.*`.
 
 
 
-## 🏁 Quick Start
+## ?? Quick Start
 
 
 
 ### 1. Register hubs
 
-**OrderBookHub** — client sends a symbol on `subscribe` / `unsubscribe`, or JSON `{ "Reason": "..." }` on `terminate` (Administrator only); server pushes `OrderBookUpdate` on `update` and a plain-string `alert` on connect:
+**OrderBookHub** � client sends a symbol on `subscribe` / `unsubscribe`, or JSON `{ "Reason": "..." }` on `terminate` (Administrator only); server pushes `OrderBookUpdate` on `update` and a plain-string `alert` on connect:
 
 ```csharp
 services.AddTopicHub<OrderBookHub>("/orderBook")
@@ -174,7 +174,7 @@ public class TerminateHubCommandHandler : IHubCommandHandler<TerminateCommand>
 
     public Task Handle(TerminateCommand request, HubCallerContext context, CancellationToken cancellationToken)
     {
-        // request.Reason is required — soft-stop the host
+        // request.Reason is required � soft-stop the host
         _lifetime.StopApplication();
         return Task.CompletedTask;
     }
@@ -185,7 +185,7 @@ public class TerminateHubCommandHandler : IHubCommandHandler<TerminateCommand>
 
 ### 4. Map hubs
 
-Call once after all `AddTopicHub` registrations — validates every `HandleOnServer` / `HandleOnClient` binding (`WithTopic`, `WithHandler`, …), then maps every registered hub (replaces multiple `MapHub<T>` calls). Fluent options from `AddTopicHub` (auth, CORS, connection options, endpoint conventions) are applied here:
+Call once after all `AddTopicHub` registrations � validates every `HandleOnServer` / `HandleOnClient` binding (`WithTopic`, `WithHandler`, �), then maps every registered hub (replaces multiple `MapHub<T>` calls). Fluent options from `AddTopicHub` (auth, CORS, connection options, endpoint conventions) are applied here:
 
 ```csharp
 app.UseEndpoints(endpoints =>
@@ -200,12 +200,12 @@ app.UseEndpoints(endpoints =>
 
 ## Authorization
 
-Two layers (both must pass when both are set — AND):
+Two layers (both must pass when both are set � AND):
 
 
 | Layer                       | How you configure it                                                                           | When it runs                              |
 | --------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| **Hub** (connection)        | Fluent on `AddTopicHub`, same shape as `MapHub(...).RequireAuthorization(...)`                 | `MapTopicHubs` → endpoint conventions     |
+| **Hub** (connection)        | Fluent on `AddTopicHub`, same shape as `MapHub(...).RequireAuthorization(...)`                 | `MapTopicHubs` ? endpoint conventions     |
 | **Topic** (inbound message) | Fluent on `HandleOnServer`: `RequireAuthorization` / `AllowAnonymous`                          | `HubCommandDispatcher` before deserialize |
 
 
@@ -237,7 +237,7 @@ services.AddTopicHub<OrderBookHub>("/orderBook")
             .WithHandler<SubscribeToSymbolHubCommandHandler>());
 ```
 
-Same overloads as `MapHub(...).RequireAuthorization(...)`. `[Authorize]` on the hub class itself is still honored by SignalR and is **not** merged or overridden by fluent — if both are present, both apply.
+Same overloads as `MapHub(...).RequireAuthorization(...)`. `[Authorize]` on the hub class itself is still honored by SignalR and is **not** merged or overridden by fluent � if both are present, both apply.
 
 ### Topic (fluent on HandleOnServer)
 
@@ -257,11 +257,11 @@ Same overloads as `MapHub(...).RequireAuthorization(...)`. `[Authorize]` on the 
 
 Topic overloads: `RequireAuthorization()`, named policies (`string[]`), and `IAuthorizeData` (e.g. `AuthorizeAttribute` with Roles). Hub-only: `AuthorizationPolicy` / policy-builder overloads.
 
-Handler type `[Authorize]` / `[AllowAnonymous]` attributes are **not** read — use fluent APIs only.
+Handler type `[Authorize]` / `[AllowAnonymous]` attributes are **not** read � use fluent APIs only.
 
 **Footguns:**
 
-- `RequireAuthorization(params …)` with an empty array throws `MisconfiguredException` (use parameterless `RequireAuthorization()` or `AllowAnonymous()`).
+- `RequireAuthorization(params �)` with an empty array throws `MisconfiguredException` (use parameterless `RequireAuthorization()` or `AllowAnonymous()`).
 - `HandleOnServer` / `HandleOnClient` / `WithHandler` require `class` types (interfaces are rejected at compile time).
 - Hub `RequireAuthorization` + topic `AllowAnonymous` still requires an authenticated connection (`MapTopicHubs` logs a Warning; topic `AllowAnonymous` only skips topic-level auth).
 
@@ -312,7 +312,7 @@ Still register CORS in the host (`AddCors` / `UseCors`) the same way you would w
 
 #### Outside the hub (controller / job / service)
 
-Same inject as handlers: `ITopicHubContext<THub>` — not `IHubContext<THub>`.
+Same inject as handlers: `ITopicHubContext<THub>` � not `IHubContext<THub>`.
 
 ```csharp
 public class OrderBookUpdateJob : BackgroundService
@@ -383,8 +383,8 @@ Wire signatures (always `string topic` + `string` payload):
 
 | Direction                | Method name | Signature the client uses                                                          |
 | ------------------------ | ----------- | ---------------------------------------------------------------------------------- |
-| Listen (server → client) | `"Handle"`  | `void Handle(string topic, string payload)` via `HubConnection.On<string, string>` |
-| Call (client → server)   | `"Handle"`  | `Task Handle(string topic, string message)` via `InvokeAsync`                      |
+| Listen (server ? client) | `"Handle"`  | `void Handle(string topic, string payload)` via `HubConnection.On<string, string>` |
+| Call (client ? server)   | `"Handle"`  | `Task Handle(string topic, string message)` via `InvokeAsync`                      |
 
 
 When the hub uses `RequireAuthorization()`, pass a JWT (demo: `AuthService.CreateToken`):
@@ -426,7 +426,7 @@ await orderBook.StartAsync();
 await orderBook.InvokeAsync("Handle", "subscribe", "BTC/USDT");
 await orderBook.InvokeAsync("Handle", "unsubscribe", "BTC/USDT");
 
-// Administrator-only topic — JSON TerminateCommand { Reason }
+// Administrator-only topic � JSON TerminateCommand { Reason }
 await orderBook.InvokeAsync("Handle", "terminate",
     JsonSerializer.Serialize(new TerminateCommand { Reason = "demo complete" }));
 ```
@@ -450,4 +450,4 @@ MIT
 
 See [examples/README.md](../examples/README.md) for the OrderBook modular server plus C# and TypeScript clients. Start **App**, then **CSharpClient** or **Clients/ts**.
 
-TypeScript client package: [`@farazlabs/topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients) (sibling repo `ManagedDotNet.SignalR.Topics.Client`) — same `HandleOnServer` / `HandleOnClient` / `WithTopic` naming, inverted transforms, `hub.handle(instance)` for outbound.
+TypeScript client package: [`@manageddotnet/topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients) (sibling repo `ManagedDotNet.SignalR.Topics.Client`) � same `HandleOnServer` / `HandleOnClient` / `WithTopic` naming, inverted transforms, `hub.handle(instance)` for outbound.

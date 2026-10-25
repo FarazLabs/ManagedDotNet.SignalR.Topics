@@ -1,7 +1,7 @@
 import {
   createTopicHubClient,
   type ITopicHubClient,
-} from "@farazlabs/topichub-client";
+} from "@manageddotnet/topichub-client";
 import { createToken, Roles } from "./authService.ts";
 import {
   SubscribeCommand,
@@ -18,7 +18,7 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Port of examples/Clients/CSharpClient/OrderBookHubDemo.cs using @farazlabs/topichub-client.
+ * Port of examples/Clients/CSharpClient/OrderBookHubDemo.cs using @manageddotnet/topichub-client.
  */
 export async function runAsync(baseUrl: string): Promise<void> {
   PrettyPrint.banner("A) anonymous connect");
@@ -87,7 +87,7 @@ async function demoAsync(
     .build();
 
   try {
-    PrettyPrint.info(`${role}: connectingâ€¦`);
+    PrettyPrint.info(`${role}: connecting…`);
     await hub.connect();
     PrettyPrint.info(`${role}: connected`);
 

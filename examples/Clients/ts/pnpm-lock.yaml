@@ -8,7 +8,7 @@ importers:
 
   .:
     dependencies:
-      '@farazlabs/topichub-client':
+      '@manageddotnet/topichub-client':
         specifier: file:../../../../ManagedDotNet.SignalR.Topics.Client
         version: file:../../../../ManagedDotNet.SignalR.Topics.Client
     devDependencies:
@@ -21,7 +21,7 @@ importers:
 
 packages:
 
-  '@farazlabs/topichub-client@file:../../../../ManagedDotNet.SignalR.Topics.Client':
+  '@manageddotnet/topichub-client@file:../../../../ManagedDotNet.SignalR.Topics.Client':
     resolution: {directory: ../../../../ManagedDotNet.SignalR.Topics.Client, type: directory}
     engines: {node: ^22.18.0 || ^24.11.0 || >=26.0.0}
 
@@ -113,7 +113,7 @@ packages:
 
 snapshots:
 
-  '@farazlabs/topichub-client@file:../../../../ManagedDotNet.SignalR.Topics.Client':
+  '@manageddotnet/topichub-client@file:../../../../ManagedDotNet.SignalR.Topics.Client':
     dependencies:
       '@microsoft/signalr': 10.0.11
     transitivePeerDependencies:

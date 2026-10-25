@@ -8,7 +8,7 @@ Modular monolith server plus C# and TypeScript clients for **ManagedDotNet.Signa
 Examples/
   Shared/                   # IModule, AuthService (JWT mint/validate), PrettyPrint, OrderBookUpdate
   Clients/CSharpClient/     # OrderBookHubDemo (raw SignalR.Client + JWT roles + topics)
-  Clients/ts/               # same demo via @farazlabs/topichub-client (constructor + withTopic)
+  Clients/ts/               # same demo via @manageddotnet/topichub-client (constructor + withTopic)
   Server/
     Modules/Orders/         # OrderBookHub, handlers, OrderBookUpdateJob, Symbols
     App/                    # hosts Orders module on http://localhost:5005
@@ -16,7 +16,7 @@ Examples/
 
 ## Run
 
-From the Topics repo root, in order (two terminals — leave App running):
+From the Topics repo root, in order (two terminals � leave App running):
 
 ```powershell
 dotnet run --project .\examples\Server\App\App.csproj --no-restore
@@ -26,15 +26,15 @@ dotnet run --project .\examples\Clients\CSharpClient\ --no-restore
 TypeScript client (same flow; needs sibling `ManagedDotNet.SignalR.Topics.Client`):
 
 ```powershell
-# terminal 1 — server
+# terminal 1 � server
 dotnet run --project .\examples\Server\App\App.csproj --no-restore
 
-# once — build the TS client package
+# once � build the TS client package
 cd ..\ManagedDotNet.SignalR.Topics.Client
 pnpm install
 pnpm build
 
-# terminal 2 — example
+# terminal 2 � example
 cd ..\ManagedDotNet.SignalR.Topics\examples\Clients\ts
 pnpm install
 pnpm start
@@ -49,9 +49,9 @@ pnpm start
 
 `OrderBookHubDemo.RunAsync`:
 
-1. **Anonymous** — connect without a token → hub auth fails 
-2. **User** — JWT with `User`; subscribe to all symbols; on each `update`, unsubscribe that symbol; after all symbols seen, send topic `terminate` with a `Reason` → role auth fails (Administrator only).
-3. **Administrator** — JWT with `Administrator`; same subscribe/update/unsubscribe loop, then topic `terminate` with a `Reason` → server soft-stops via `IHostApplicationLifetime.StopApplication()`.
+1. **Anonymous** � connect without a token ? hub auth fails 
+2. **User** � JWT with `User`; subscribe to all symbols; on each `update`, unsubscribe that symbol; after all symbols seen, send topic `terminate` with a `Reason` ? role auth fails (Administrator only).
+3. **Administrator** � JWT with `Administrator`; same subscribe/update/unsubscribe loop, then topic `terminate` with a `Reason` ? server soft-stops via `IHostApplicationLifetime.StopApplication()`.
 
 
 
@@ -60,14 +60,14 @@ pnpm start
 
 | Layer                       | Rule                                                                                              |
 | --------------------------- | ------------------------------------------------------------------------------------------------- |
-| Hub connect                 | `RequireAuthorization()` — any valid JWT                                                          |
+| Hub connect                 | `RequireAuthorization()` � any valid JWT                                                          |
 | `subscribe` / `unsubscribe` | `.RequireAuthorization(new AuthorizeAttribute { Roles = "User,Administrator" })` on `HandleOnServer` |
 | `terminate`                 | `.RequireAuthorization(new AuthorizeAttribute { Roles = "Administrator" })` on `HandleOnServer`   |
 
 
-Fluent hub auth matches `MapHub` (`string` / `IAuthorizeData` / `AuthorizationPolicy` / policy builder). Topic auth uses `RequireAuthorization()` / named policies / `IAuthorizeData` on `HandleOnServer`. Handler-class authorize attributes are not read. This demo uses default-policy hub auth plus role-based topic auth — see `src/README.md` → Authorization.
+Fluent hub auth matches `MapHub` (`string` / `IAuthorizeData` / `AuthorizationPolicy` / policy builder). Topic auth uses `RequireAuthorization()` / named policies / `IAuthorizeData` on `HandleOnServer`. Handler-class authorize attributes are not read. This demo uses default-policy hub auth plus role-based topic auth � see `src/README.md` ? Authorization.
 
-Other MapHub-parity options (`RequireCors`, `ConfigureHttpConnection`, `WithMetadata`, `RequireHost`, `WithDisplayName`, `ConfigureEndpoint`) are also available on `AddTopicHub` — see `src/README.md` → Endpoint conventions.
+Other MapHub-parity options (`RequireCors`, `ConfigureHttpConnection`, `WithMetadata`, `RequireHost`, `WithDisplayName`, `ConfigureEndpoint`) are also available on `AddTopicHub` � see `src/README.md` ? Endpoint conventions.
 
 Tokens are minted with the hardcoded key in `AuthService` (demo only).
 
@@ -76,11 +76,11 @@ Tokens are minted with the hardcoded key in `AuthService` (demo only).
 
 | Direction       | Topic         | Payload                        | Notes                                          |
 | --------------- | ------------- | ------------------------------ | ---------------------------------------------- |
-| Client → server | `subscribe`   | symbol string, e.g. `BTC/USDT` | User or Administrator; deserializer uppercases |
-| Client → server | `unsubscribe` | symbol string                  | User or Administrator                          |
-| Client → server | `terminate`   | JSON `{"Reason": "..."}`       | Administrator only; soft host shutdown         |
-| Server → client | `update`      | JSON `OrderBookUpdate`         | Symbol SignalR group                           |
-| Server → client | `alert`       | plain string message           | Sent to caller on connect                      |
+| Client ? server | `subscribe`   | symbol string, e.g. `BTC/USDT` | User or Administrator; deserializer uppercases |
+| Client ? server | `unsubscribe` | symbol string                  | User or Administrator                          |
+| Client ? server | `terminate`   | JSON `{"Reason": "..."}`       | Administrator only; soft host shutdown         |
+| Server ? client | `update`      | JSON `OrderBookUpdate`         | Symbol SignalR group                           |
+| Server ? client | `alert`       | plain string message           | Sent to caller on connect                      |
 
 
 
@@ -157,10 +157,10 @@ HubConnection orderBook = new HubConnectionBuilder()
 
 ### Registration (TypeScript client)
 
-Uses [`@farazlabs/topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients). Fluent names match the server; transforms are inverted. Outbound messages are **classes**; `hub.handle(instance)` resolves topic via `instance.constructor`.
+Uses [`@manageddotnet/topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients). Fluent names match the server; transforms are inverted. Outbound messages are **classes**; `hub.handle(instance)` resolves topic via `instance.constructor`.
 
 ```ts
-import { createTopicHubClient } from "@farazlabs/topichub-client";
+import { createTopicHubClient } from "@manageddotnet/topichub-client";
 
 class SubscribeCommand {
   public readonly symbol: string;
