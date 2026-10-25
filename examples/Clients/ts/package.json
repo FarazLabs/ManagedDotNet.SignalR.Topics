@@ -8,8 +8,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@manageddotnet/signalr-client": "file:../../../../ManagedDotNet.SignalR.Topics.Client",
-    "@microsoft/signalr": "9.0.19"
+    "@farazlabs/topichub-client": "file:../../../../ManagedDotNet.SignalR.Topics.Client"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

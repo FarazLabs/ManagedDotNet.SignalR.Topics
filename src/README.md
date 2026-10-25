@@ -450,4 +450,4 @@ MIT
 
 See [examples/README.md](../examples/README.md) for the OrderBook modular server plus C# and TypeScript clients. Start **App**, then **CSharpClient** or **Clients/ts**.
 
-TypeScript client package: [`@manageddotnet/signalr-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients) (sibling repo `ManagedDotNet.SignalR.Topics.Client`) — same `HandleOnServer` / `HandleOnClient` / `WithTopic` naming, inverted transforms, `hub.handle(instance)` for outbound.
+TypeScript client package: [`@farazlabs/topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients) (sibling repo `ManagedDotNet.SignalR.Topics.Client`) — same `HandleOnServer` / `HandleOnClient` / `WithTopic` naming, inverted transforms, `hub.handle(instance)` for outbound.

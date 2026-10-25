@@ -1,6 +1,6 @@
 # TypeScript OrderBook client
 
-Same flow as [`../CSharpClient`](../CSharpClient): anonymous → User → Administrator against `http://localhost:5005/orderBook`, using [`@manageddotnet/signalr-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients).
+Same flow as [`../CSharpClient`](../CSharpClient): anonymous → User → Administrator against `http://localhost:5005/orderBook`, using [`@farazlabs/topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients).
 
 ## Prerequisites
 
@@ -31,7 +31,7 @@ Uses Node `--experimental-strip-types`. Outbound message classes must **not** us
 ## Registration (mirrors server Orders module)
 
 ```ts
-import { createTopicHubClient } from "@manageddotnet/signalr-client";
+import { createTopicHubClient } from "@farazlabs/topichub-client";
 
 class SubscribeCommand {
   public readonly symbol: string;

@@ -1,7 +1,7 @@
 import {
   createTopicHubClient,
   type ITopicHubClient,
-} from "@manageddotnet/signalr-client";
+} from "@farazlabs/topichub-client";
 import { createToken, Roles } from "./authService.ts";
 import {
   SubscribeCommand,
@@ -18,7 +18,7 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Port of examples/Clients/CSharpClient/OrderBookHubDemo.cs using @manageddotnet/signalr-client.
+ * Port of examples/Clients/CSharpClient/OrderBookHubDemo.cs using @farazlabs/topichub-client.
  */
 export async function runAsync(baseUrl: string): Promise<void> {
   PrettyPrint.banner("A) anonymous connect");

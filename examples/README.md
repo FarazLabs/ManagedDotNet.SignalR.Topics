@@ -8,7 +8,7 @@ Modular monolith server plus C# and TypeScript clients for **ManagedDotNet.Signa
 Examples/
   Shared/                   # IModule, AuthService (JWT mint/validate), PrettyPrint, OrderBookUpdate
   Clients/CSharpClient/     # OrderBookHubDemo (raw SignalR.Client + JWT roles + topics)
-  Clients/ts/               # same demo via @manageddotnet/signalr-client (constructor + withTopic)
+  Clients/ts/               # same demo via @farazlabs/topichub-client (constructor + withTopic)
   Server/
     Modules/Orders/         # OrderBookHub, handlers, OrderBookUpdateJob, Symbols
     App/                    # hosts Orders module on http://localhost:5005
@@ -157,10 +157,10 @@ HubConnection orderBook = new HubConnectionBuilder()
 
 ### Registration (TypeScript client)
 
-Uses [`@manageddotnet/signalr-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients). Fluent names match the server; transforms are inverted. Outbound messages are **classes**; `hub.handle(instance)` resolves topic via `instance.constructor`.
+Uses [`@farazlabs/topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients). Fluent names match the server; transforms are inverted. Outbound messages are **classes**; `hub.handle(instance)` resolves topic via `instance.constructor`.
 
 ```ts
-import { createTopicHubClient } from "@manageddotnet/signalr-client";
+import { createTopicHubClient } from "@farazlabs/topichub-client";
 
 class SubscribeCommand {
   public readonly symbol: string;

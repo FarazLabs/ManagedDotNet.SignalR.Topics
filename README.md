@@ -10,7 +10,7 @@ dotnet add package ManagedDotNet.SignalR.Topics
 | --- | --- |
 | Library docs | [src/README.md](src/README.md) |
 | Demo (server + C# / TS clients) | [examples/README.md](examples/README.md) |
-| TypeScript client | [`@manageddotnet/signalr-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients) (sibling repo `ManagedDotNet.SignalR.Topics.Client`) |
+| TypeScript client | [`@farazlabs/topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients) (sibling repo `ManagedDotNet.SignalR.Topics.Client`) |
 | License | [MIT](LICENSE) |
 
 Requires .NET 8+.
