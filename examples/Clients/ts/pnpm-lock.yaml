@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      'manageddotnet-topichub-client':
-        specifier: file:../../../../ManagedDotNet.SignalR.Topics.Client
-        version: file:../../../../ManagedDotNet.SignalR.Topics.Client
+      manageddotnet-topichub-client:
+        specifier: ^0.1.5
+        version: 0.1.5
     devDependencies:
       '@types/node':
         specifier: 22.20.5
@@ -20,10 +20,6 @@ importers:
         version: 5.9.3
 
 packages:
-
-  'manageddotnet-topichub-client@file:../../../../ManagedDotNet.SignalR.Topics.Client':
-    resolution: {directory: ../../../../ManagedDotNet.SignalR.Topics.Client, type: directory}
-    engines: {node: ^22.18.0 || ^24.11.0 || >=26.0.0}
 
   '@microsoft/signalr@10.0.11':
     resolution: {integrity: sha512-FulOJ2EEtKvLQcswe/U7v8pzyXyk7Jua5xgWJPPwyQU/2Z9ORvKcVjyO75VvLsem+CJ1ORRexJ+7Bz1FCei2aw==}
@@ -45,6 +41,10 @@ packages:
 
   fetch-cookie@2.2.0:
     resolution: {integrity: sha512-h9AgfjURuCgA2+2ISl8GbavpUdR+WGAM2McW/ovn4tVccegp8ZqCKWSBR8uRdM8dDNlx5WdKRWxBYUwteLDCNQ==}
+
+  manageddotnet-topichub-client@0.1.5:
+    resolution: {integrity: sha512-r+mQjXJYgjKHj7zwZeztRirceOIfAEQ/hDVclDvlQrY9ZIkRiIRdJhl2AIntb6Y4vJ9DZT0VclpHmeyTkOQAWg==}
+    engines: {node: ^22.18.0 || ^24.11.0 || >=26.0.0}
 
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
@@ -113,14 +113,6 @@ packages:
 
 snapshots:
 
-  'manageddotnet-topichub-client@file:../../../../ManagedDotNet.SignalR.Topics.Client':
-    dependencies:
-      '@microsoft/signalr': 10.0.11
-    transitivePeerDependencies:
-      - bufferutil
-      - encoding
-      - utf-8-validate
-
   '@microsoft/signalr@10.0.11':
     dependencies:
       abort-controller: 3.0.0
@@ -149,6 +141,14 @@ snapshots:
     dependencies:
       set-cookie-parser: 2.7.3
       tough-cookie: 4.1.4
+
+  manageddotnet-topichub-client@0.1.5:
+    dependencies:
+      '@microsoft/signalr': 10.0.11
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - utf-8-validate
 
   node-fetch@2.7.0:
     dependencies:

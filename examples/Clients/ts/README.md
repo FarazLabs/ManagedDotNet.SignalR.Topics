@@ -1,21 +1,13 @@
 # TypeScript OrderBook client
 
-Same flow as [`../CSharpClient`](../CSharpClient): anonymous → User → Administrator against `http://localhost:5005/orderBook`, using [`manageddotnet-topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients).
+Same flow as [`../CSharpClient`](../CSharpClient): anonymous → User → Administrator against `http://localhost:5005/orderBook`, using [`manageddotnet-topichub-client`](https://www.npmjs.com/package/manageddotnet-topichub-client).
 
 ## Prerequisites
 
-1. Start the demo server from the Topics repo root:
+Start the demo server from the Topics repo root:
 
 ```powershell
 dotnet run --project .\examples\Server\App\App.csproj --no-restore
-```
-
-2. Sibling checkout of the client at `repos/ManagedDotNet.SignalR.Topics.Client` (`file:../../../../ManagedDotNet.SignalR.Topics.Client`). Build it once:
-
-```powershell
-cd ..\..\..\..\ManagedDotNet.SignalR.Topics.Client
-pnpm install
-pnpm build
 ```
 
 ## Run

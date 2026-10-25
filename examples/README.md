@@ -23,19 +23,14 @@ dotnet run --project .\examples\Server\App\App.csproj --no-restore
 dotnet run --project .\examples\Clients\CSharpClient\ --no-restore
 ```
 
-TypeScript client (same flow; needs sibling `ManagedDotNet.SignalR.Topics.Client`):
+TypeScript client (same flow; uses published `manageddotnet-topichub-client`):
 
 ```powershell
 # terminal 1 — server
 dotnet run --project .\examples\Server\App\App.csproj --no-restore
 
-# once — build the TS client package
-cd ..\ManagedDotNet.SignalR.Topics.Client
-pnpm install
-pnpm build
-
 # terminal 2 — example
-cd ..\ManagedDotNet.SignalR.Topics\examples\Clients\ts
+cd .\examples\Clients\ts
 pnpm install
 pnpm start
 ```
@@ -157,7 +152,7 @@ HubConnection orderBook = new HubConnectionBuilder()
 
 ### Registration (TypeScript client)
 
-Uses [`manageddotnet-topichub-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients). Fluent names match the server; transforms are inverted. Outbound messages are **classes**; `hub.handle(instance)` resolves topic via `instance.constructor`.
+Uses [`manageddotnet-topichub-client`](https://www.npmjs.com/package/manageddotnet-topichub-client). Fluent names match the server; transforms are inverted. Outbound messages are **classes**; `hub.handle(instance)` resolves topic via `instance.constructor`.
 
 ```ts
 import { createTopicHubClient } from "manageddotnet-topichub-client";
