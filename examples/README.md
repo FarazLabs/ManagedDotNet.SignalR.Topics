@@ -1,13 +1,14 @@
 # ManagedDotNet.SignalR.Topics Demo
 
-Modular monolith server plus a C# client for **ManagedDotNet.SignalR.Topics**.
+Modular monolith server plus C# and TypeScript clients for **ManagedDotNet.SignalR.Topics**.
 
 ## Layout
 
 ```text
 Examples/
   Shared/                   # IModule, AuthService (JWT mint/validate), PrettyPrint, OrderBookUpdate
-  Clients/CSharpClient/     # OrderBookHubDemo (JWT roles + topics)
+  Clients/CSharpClient/     # OrderBookHubDemo (raw SignalR.Client + JWT roles + topics)
+  Clients/ts/               # same demo via @manageddotnet/signalr-client (constructor + withTopic)
   Server/
     Modules/Orders/         # OrderBookHub, handlers, OrderBookUpdateJob, Symbols
     App/                    # hosts Orders module on http://localhost:5005
@@ -15,15 +16,32 @@ Examples/
 
 ## Run
 
-From the repo root, in order (two terminals — leave App running):
+From the Topics repo root, in order (two terminals — leave App running):
 
 ```powershell
-dotnet run --project .\examples\Server\App\App.csproj
-dotnet run --project .\examples\Clients\CSharpClient\
+dotnet run --project .\examples\Server\App\App.csproj --no-restore
+dotnet run --project .\examples\Clients\CSharpClient\ --no-restore
+```
+
+TypeScript client (same flow; needs sibling `ManagedDotNet.SignalR.Topics.Client`):
+
+```powershell
+# terminal 1 — server
+dotnet run --project .\examples\Server\App\App.csproj --no-restore
+
+# once — build the TS client package
+cd ..\ManagedDotNet.SignalR.Topics.Client
+pnpm install
+pnpm build
+
+# terminal 2 — example
+cd ..\ManagedDotNet.SignalR.Topics\examples\Clients\ts
+pnpm install
+pnpm start
 ```
 
 1. Start `App` first (`http://localhost:5005`).
-2. Then start `CSharpClient`.
+2. Then start `CSharpClient` **or** `Clients/ts` (see [`Clients/ts/README.md`](Clients/ts/README.md)).
 
 
 
@@ -125,7 +143,7 @@ services.AddHostedService<OrderBookUpdateJob>();
 
 
 
-### Client JWT
+### Client JWT (C#)
 
 ```csharp
 // Create a token 
@@ -137,7 +155,93 @@ HubConnection orderBook = new HubConnectionBuilder()
     .Build();
 ```
 
+### Registration (TypeScript client)
 
+Uses [`@manageddotnet/signalr-client`](https://github.com/FarazLabs/ManagedDotNet.SignalR.Topics.Clients). Fluent names match the server; transforms are inverted. Outbound messages are **classes**; `hub.handle(instance)` resolves topic via `instance.constructor`.
+
+```ts
+import { createTopicHubClient } from "@manageddotnet/signalr-client";
+
+class SubscribeCommand {
+  public readonly symbol: string;
+
+  public constructor
+  (
+    symbol: string,
+  )
+  {
+    this.symbol = symbol;
+  }
+}
+
+class UnsubscribeCommand {
+  public readonly symbol: string;
+
+  public constructor
+  (
+    symbol: string,
+  )
+  {
+    this.symbol = symbol;
+  }
+}
+
+class TerminateCommand {
+  public readonly Reason: string;
+
+  public constructor
+  (
+    Reason: string,
+  )
+  {
+    this.Reason = Reason;
+  }
+}
+
+type OrderBookUpdate = {
+  Symbol: string;
+  Price: number;
+};
+
+const token: string | null = /* JWT or null */;
+
+const hub = createTopicHubClient({
+  getUrl: () => "http://localhost:5005/orderBook",
+  getAccessToken: () => token,
+})
+  .handleOnServer(SubscribeCommand, (cfg) =>
+    cfg
+      .withTopic("subscribe")
+      .withSerializer((cmd) => cmd.symbol))
+  .handleOnServer(UnsubscribeCommand, (cfg) =>
+    cfg
+      .withTopic("unsubscribe")
+      .withSerializer((cmd) => cmd.symbol))
+  .handleOnServer(TerminateCommand, (cfg) =>
+    cfg
+      .withTopic("terminate"))
+  .handleOnClient<string>((cfg) =>
+    cfg
+      .withTopic("alert")
+      .withDeserializer((payload) => payload)
+      .withHandler((message, context) => {
+        console.log(context.topic, message);
+      }))
+  .handleOnClient<OrderBookUpdate>((cfg) =>
+    cfg
+      .withTopic("update")
+      .withHandler(async (update, context) => {
+        console.log(context.topic, update.Symbol, update.Price);
+        await hub.handle(new UnsubscribeCommand(update.Symbol));
+      }))
+  .build();
+
+await hub.connect();
+await hub.handle(new SubscribeCommand("BTC/USDT"));
+await hub.handle(new TerminateCommand("demo complete"));
+```
+
+See [`Clients/ts/README.md`](Clients/ts/README.md) for run steps.
 
 ### Symbols
 
