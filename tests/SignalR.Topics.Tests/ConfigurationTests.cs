@@ -305,6 +305,26 @@ public sealed class ConfigurationTests
         Assert.False(other.HandleOnServerConfigurations.ContainsKey("ping"));
     }
 
+    [Fact]
+    public void Same_handler_on_two_hubs_registers_once_in_DI()
+    {
+        ServiceCollection services = new ServiceCollection();
+        services.AddSingleton<HandlerCapture>();
+        services.AddSignalR();
+
+        services.AddTopicHub<PingHub>("/ping")
+            .HandleOnServer<PingCommand>(cfg =>
+                cfg.WithTopic("ping")
+                    .WithHandler<PingHandler>());
+
+        services.AddTopicHub<OtherHub>("/other")
+            .HandleOnServer<PingCommand>(cfg =>
+                cfg.WithTopic("ping")
+                    .WithHandler<PingHandler>());
+
+        Assert.Single(services, d => d.ServiceType == typeof(PingHandler));
+    }
+
     private sealed class CollectingLoggerProvider : ILoggerProvider
     {
         private readonly List<string> _warnings;

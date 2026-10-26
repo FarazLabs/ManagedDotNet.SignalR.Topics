@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace ManagedDotNet.SignalR.Topics.Configuration;
 
@@ -313,7 +314,7 @@ public sealed class EndpointOptions
                 $"Topic '{configuration.Topic}' is already registered on hub '{HubType.FullName}'. Use a distinct topic per HandleOnServer binding.");
         }
 
-        Services!.AddScoped(configuration.HandlerType!);
+        Services!.TryAddScoped(configuration.HandlerType!);
 
         return this;
     }
